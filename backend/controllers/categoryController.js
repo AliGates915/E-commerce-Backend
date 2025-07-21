@@ -3,7 +3,11 @@ import Category from '../models/Category.js';
 // CREATE Category
 export const createCategory = async (req, res) => {
   try {
-    const category = new Category({ name: req.body.name });
+    const { name, isEnable } = req.body;
+    const category = new Category({
+      name,
+      isEnable: typeof isEnable === 'boolean' ? isEnable : true,
+    });
     await category.save();
     res.status(201).json({ success: true, data: category });
   } catch (err) {
@@ -37,9 +41,14 @@ export const getCategoryById = async (req, res) => {
 // UPDATE Category
 export const updateCategory = async (req, res) => {
   try {
+    const { name, isEnable } = req.body;
+    const updateFields = {};
+    if (name !== undefined) updateFields.name = name;
+    if (isEnable !== undefined) updateFields.isEnable = isEnable;
+
     const category = await Category.findByIdAndUpdate(
       req.params.id,
-      { name: req.body.name },
+      updateFields,
       { new: true }
     );
     if (!category) {

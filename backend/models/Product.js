@@ -19,6 +19,7 @@ const productSchema = new mongoose.Schema({
     }
   ],
   stock: { type: Number, required: true },
+  discountPercentage: { type: Number, default: 0 }, // ✅ Add this line
   images: [
     {
       url: String,

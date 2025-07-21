@@ -9,10 +9,17 @@ import {
 
 const router = express.Router();
 
-router.post('/', createPromotion);           // Create
-router.get('/', getPromotions);              // Read all
-router.get('/:id', getPromotionById);        // Read one
-router.put('/:id', updatePromotion);         // Update
-router.delete('/:id', deletePromotion);      // Delete
+// CREATE
+router.post('/', createPromotion);
+
+// READ
+router.get('/', getPromotions);
+router.get('/:id', getPromotionById);
+
+// UPDATE (This is what you need to add/verify)
+router.patch('/:id', updatePromotion);
+
+// DELETE
+router.delete('/:id', deletePromotion);
 
 export default router;

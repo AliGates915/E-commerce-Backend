@@ -16,13 +16,25 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  if (Object.keys(req.body).length) {
+    console.log('Body:', req.body);
+  }
+  if (Object.keys(req.query).length) {
+    console.log('Query:', req.query);
+  }
+  next();
+});
+
 connectDB();
 
+app.use("/api/auth", authRoutes);
 app.use('/api/products', productRoute);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use("/api/auth", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

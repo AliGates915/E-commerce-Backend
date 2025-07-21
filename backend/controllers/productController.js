@@ -1,5 +1,36 @@
 import Product from '../models/Product.js';
 import { cloudinary } from '../config/cloudinary.js';
+import Promotion from '../models/Promotion.js'; // Make sure this is imported
+
+// GET All Products (with optional limit and sort)
+export const getAllProducts = async (req, res) => {
+  try {
+    let query = Product.find({})
+      .populate('category', 'name')
+      .populate('promotion', 'name');
+
+    // Handle sorting
+    if (req.query.sort) {
+      // Default sort by createdAt
+      const sortField = req.query.sortField || 'createdAt';
+      const sortOrder = req.query.sort === 'desc' ? -1 : 1;
+      query = query.sort({ [sortField]: sortOrder });
+    }
+
+    // Handle limit
+    if (req.query.limit) {
+      const limit = parseInt(req.query.limit, 10);
+      if (!isNaN(limit)) {
+        query = query.limit(limit);
+      }
+    }
+
+    const products = await query.exec();
+    res.status(200).json({ success: true, data: products });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 // ✅ Add Product
 export const addProduct = async (req, res) => {
@@ -18,6 +49,7 @@ export const addProduct = async (req, res) => {
       category: req.body.category ? req.body.category.split(',') : [],
       promotion: req.body.promotion ? req.body.promotion.split(',') : [],
       stock: req.body.stock,
+      discountPercentage: req.body.discountPercentage || 0,
       images,
     });
 
@@ -95,6 +127,7 @@ export const updateProduct = async (req, res) => {
       category: req.body.category ? req.body.category.split(',') : product.category,
       promotion: req.body.promotion ? req.body.promotion.split(',') : product.promotion,
       stock: req.body.stock ?? product.stock,
+      discountPercentage: req.body.discountPercentage ?? product.discountPercentage,
       images: images.length > 0 ? images : product.images,
     };
 
@@ -105,19 +138,104 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// ✅ Delete Product
+// ✅ Delete Product (Corrected)
 export const deleteProduct = async (req, res) => {
   try {
+    // Find the product first to get image public_ids for deletion
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-
-    // Delete Cloudinary images
-    for (const img of product.images) {
-      await cloudinary.uploader.destroy(img.public_id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    await product.remove();
+    // Delete images from Cloudinary
+    if (product.images && product.images.length > 0) {
+      for (const img of product.images) {
+        // Ensure you have a public_id to destroy
+        if (img.public_id) {
+          await cloudinary.uploader.destroy(img.public_id);
+        }
+      }
+    }
+
+    // Now, delete the product from the database
+    await Product.findByIdAndDelete(req.params.id);
+
     res.status(200).json({ success: true, message: 'Product deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ✅ Remove a Single Product Image
+export const removeProductImage = async (req, res) => {
+  try {
+    const { productId, publicId } = req.params;
+
+    // 1. Remove image from Cloudinary
+    await cloudinary.uploader.destroy(publicId);
+
+    // 2. Pull the image from the product's images array in MongoDB
+    const updatedProduct = await Product.findByIdAndUpdate(
+      productId,
+      { $pull: { images: { public_id: publicId } } },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Image deleted successfully', data: updatedProduct });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET all products with a promotion named "features" (case-insensitive)
+export const getFeatureProducts = async (req, res) => {
+  try {
+    // Find the promotion(s) with name "features" (case-insensitive)
+    const featurePromos = await Promotion.find({
+      name: { $regex: /^features$/i }
+    });
+
+    if (!featurePromos.length) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Get all products that have any of these promotion IDs
+    const featurePromoIds = featurePromos.map(p => p._id);
+
+    const products = await Product.find({ promotion: { $in: featurePromoIds } })
+      .populate('category', 'name')
+      .populate('promotion', 'name');
+
+    res.status(200).json({ success: true, data: products });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET all products with a promotion named "discount" (case-insensitive)
+export const getDiscountProducts = async (req, res) => {
+  try {
+    // Find the promotion(s) with name "discount" (case-insensitive)
+    const discountPromos = await Promotion.find({
+      name: { $regex: /^discount$/i }
+    });
+
+    if (!discountPromos.length) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    // Get all products that have any of these promotion IDs
+    const discountPromoIds = discountPromos.map(p => p._id);
+
+    const products = await Product.find({ promotion: { $in: discountPromoIds } })
+      .populate('category', 'name')
+      .populate('promotion', 'name');
+
+    res.status(200).json({ success: true, data: products });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

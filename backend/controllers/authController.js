@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
     try {
-        const { name, username, email, password,role } = req.body;
+        const { name, username, email, password } = req.body;
     
         const userExists = await User.findOne({ email });
         if (userExists)
@@ -18,7 +18,10 @@ export const register = async (req, res) => {
           username,
           email,
           password: hashedPassword,
-          role
+          role: 'user',
+          isVerified: false,
+          isAdmin: false,
+          status: 'pending' // or 'active' if you want to auto-activate
         });
     
         await newUser.save();
@@ -58,5 +61,42 @@ export const login = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: "Login error", error: err.message });
+  }
+};
+
+// Update user status
+export const updateUserStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).select("-password");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    res.json({ success: true, data: user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to update status", error: err.message });
+  }
+};
+
+// Delete user
+export const deleteUser = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    res.json({ success: true, message: "User deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to delete user", error: err.message });
+  }
+};
+
+// Get all users (admin only in production)
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password"); // Exclude password
+    res.status(200).json({ success: true, data: users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch users", error: err.message });
   }
 };

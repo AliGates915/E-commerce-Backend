@@ -3,7 +3,11 @@ import Promotion from '../models/Promotion.js';
 // CREATE Promotion
 export const createPromotion = async (req, res) => {
   try {
-    const promotion = new Promotion({ name: req.body.name });
+    const { name, isEnable } = req.body;
+    const promotion = new Promotion({ 
+      name, 
+      isEnable: typeof isEnable === "boolean" ? isEnable : true // default true
+    });
     await promotion.save();
     res.status(201).json({ success: true, data: promotion });
   } catch (err) {
@@ -37,9 +41,14 @@ export const getPromotionById = async (req, res) => {
 // UPDATE Promotion
 export const updatePromotion = async (req, res) => {
   try {
+    const { name, isEnable } = req.body;
+    const updateFields = {};
+    if (name !== undefined) updateFields.name = name;
+    if (isEnable !== undefined) updateFields.isEnable = isEnable;
+
     const promotion = await Promotion.findByIdAndUpdate(
       req.params.id,
-      { name: req.body.name },
+      updateFields,
       { new: true }
     );
     if (!promotion) {
