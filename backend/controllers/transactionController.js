@@ -142,7 +142,7 @@ export const stripeWebhook = async (req, res) => {
 
     try {
       const transaction = new Transaction({
-        userId: mongoose.Types.ObjectId(userId),
+        userId, // <-- just use the string directly
         products,
         totalAmount,
         paymentStatus,

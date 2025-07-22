@@ -2,14 +2,13 @@ import mongoose from 'mongoose';
 
 const transactionSchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String, // Changed from ObjectId to String
     required: true,
   },
   products: [
     {
       name: { type: String, required: true }
-      // You can add more fields here if needed in the future
+      // You can add more fields here if needed
     }
   ],
   totalAmount: {
