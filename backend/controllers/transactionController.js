@@ -83,7 +83,7 @@ export const createCheckoutSession = async (req, res) => {
       success_url: `http://localhost:8080/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
-        userId, // <-- this is required for your webhook
+        userId, 
         productNames, // <-- this is a comma-separated string
       },
     });
@@ -120,6 +120,8 @@ export const stripeWebhook = async (req, res) => {
     const productNames = session.metadata?.productNames
       ? session.metadata.productNames.split(',').filter(Boolean)
       : [];
+    const products = productNames.map(name => ({ name }));
+
     if (!userId || !productNames.length) {
       console.error('Missing userId or productNames in Stripe session metadata', session.metadata);
       return res.status(400).json({ success: false, message: 'Missing userId or productNames in metadata' });
@@ -131,7 +133,7 @@ export const stripeWebhook = async (req, res) => {
     try {
       const transaction = new Transaction({
         userId,
-        products: productNames, // You may want to adjust this to fit your schema
+        products, // now an array of objects with 'name'
         totalAmount,
         paymentStatus,
         transactionId,
