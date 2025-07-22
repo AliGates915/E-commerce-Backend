@@ -2,9 +2,9 @@
   "name": "ecommerce-backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node api/index.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -12,11 +12,11 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
-    "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.1",
     "mongoose": "^7.8.7",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "serverless-http": "^3.2.0"
   }
 }
