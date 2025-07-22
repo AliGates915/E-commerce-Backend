@@ -1,13 +1,12 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import serverless from "serverless-http";
-import { connectDB } from "../config/db.js";
-import authRoutes from "../routes/auth.js";
-import productRoute from '../routes/productRoute.js';
-import categoryRoutes from '../routes/categoryRoutes.js';
-import promotionRoutes from '../routes/promotionRoutes.js';
-import transactionRoutes from '../routes/transactionRoutes.js';
+import { connectDB } from "./config/db.js";
+import authRoutes from "./routes/auth.js";
+import productRoute from './routes/productRoute.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import promotionRoutes from './routes/promotionRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -32,5 +31,10 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/transactions', transactionRoutes);
 
-// Export for serverless deployment
-export const handler = serverless(app);
+// Start server
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+
+export default app;
