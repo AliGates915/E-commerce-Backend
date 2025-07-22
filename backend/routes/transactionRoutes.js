@@ -10,6 +10,6 @@ router.get('/', getTransactions);
 router.post('/create-checkout-session', createCheckoutSession);
 
 // Stripe webhook (raw body required in app.js)
-router.post('/webhook', stripeWebhook);
+router.post('/', stripeWebhook);
 
 export default router;
