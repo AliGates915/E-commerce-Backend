@@ -76,8 +76,8 @@ export const createCheckoutSession = async (req, res) => {
       success_url: `http://localhost:8080/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
-        userId,
-        productNames,
+        userId, // <-- this is required for your webhook
+        productNames, // <-- this is a comma-separated string
       },
     });
 
@@ -110,21 +110,12 @@ export const stripeWebhook = async (req, res) => {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const userId = session.metadata?.userId;
-    let products = [];
-    if (session.metadata?.products) {
-      try {
-        products = JSON.parse(session.metadata.products);
-      } catch (e) {
-        console.error('Error parsing products from metadata:', e);
-        products = [];
-      }
-    }
-    const productIds = session.metadata?.productIds
-      ? session.metadata.productIds.split(',').filter(Boolean)
+    const productNames = session.metadata?.productNames
+      ? session.metadata.productNames.split(',').filter(Boolean)
       : [];
-    if (!userId || !productIds.length) {
-      console.error('Missing userId or productIds in Stripe session metadata', session.metadata);
-      return res.status(400).json({ success: false, message: 'Missing userId or productIds in metadata' });
+    if (!userId || !productNames.length) {
+      console.error('Missing userId or productNames in Stripe session metadata', session.metadata);
+      return res.status(400).json({ success: false, message: 'Missing userId or productNames in metadata' });
     }
     const totalAmount = session.amount_total / 100;
     const transactionId = session.id;
@@ -133,7 +124,7 @@ export const stripeWebhook = async (req, res) => {
     try {
       const transaction = new Transaction({
         userId,
-        products,
+        products: productNames, // You may want to adjust this to fit your schema
         totalAmount,
         paymentStatus,
         transactionId,
