@@ -47,7 +47,14 @@ export const createCheckoutSession = async (req, res) => {
   try {
     const { userId, products, items } = req.body;
     // products: [{ productId, name, price, quantity }]
-    const cartProducts = products || items; // use whichever is present
+    let cartProducts = products || items;
+    if (typeof cartProducts === 'string') {
+      try {
+        cartProducts = JSON.parse(cartProducts);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: 'Invalid products format' });
+      }
+    }
 
     if (!cartProducts) {
       return res.status(400).json({ success: false, message: 'No products/items provided' });
