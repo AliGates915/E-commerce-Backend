@@ -85,11 +85,12 @@ export const createCheckoutSession = async (req, res) => {
 // Stripe Webhook Handler
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';
+  const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';; // Use env variable!
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(
-      req.body, // ✅ Use req.body after express.raw
+      req.body, // Use req.body after express.raw
       sig,
       STRIPE_WEBHOOK_SECRET
     );
@@ -97,6 +98,9 @@ export const stripeWebhook = async (req, res) => {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  // Log the event for debugging
+  console.log('Stripe webhook event:', JSON.stringify(event, null, 2));
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
@@ -106,11 +110,12 @@ export const stripeWebhook = async (req, res) => {
       try {
         products = JSON.parse(session.metadata.products);
       } catch (e) {
+        console.error('Error parsing products from metadata:', e);
         products = [];
       }
     }
     if (!userId || !products.length) {
-      console.error('Missing userId or products in Stripe session metadata');
+      console.error('Missing userId or products in Stripe session metadata', session.metadata);
       return res.status(400).json({ success: false, message: 'Missing userId or products in metadata' });
     }
     const totalAmount = session.amount_total / 100;
@@ -127,6 +132,7 @@ export const stripeWebhook = async (req, res) => {
       });
       await transaction.save();
     } catch (err) {
+      console.error('Error saving transaction:', err);
       return res.status(500).json({ success: false, message: err.message });
     }
   }
