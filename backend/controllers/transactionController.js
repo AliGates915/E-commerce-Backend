@@ -72,7 +72,7 @@ export const createCheckoutSession = async (req, res) => {
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
         userId,
-        products: JSON.stringify(cartProducts), // or products/items
+        productIds: cartProducts.map(item => item.productId).join(','), // Only IDs, not full objects
       },
     });
 
