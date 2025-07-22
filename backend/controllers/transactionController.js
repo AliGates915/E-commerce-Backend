@@ -64,6 +64,11 @@ export const createCheckoutSession = async (req, res) => {
       quantity: item.quantity,
     }));
 
+    const productIds = cartProducts
+      .map(item => item.productId)
+      .filter(Boolean) // removes undefined/null/empty
+      .join(',');
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items,
@@ -72,7 +77,7 @@ export const createCheckoutSession = async (req, res) => {
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
         userId,
-        productIds: cartProducts.map(item => item.productId).join(','), // Only IDs, not full objects
+        productIds,
       },
     });
 
@@ -114,9 +119,12 @@ export const stripeWebhook = async (req, res) => {
         products = [];
       }
     }
-    if (!userId || !products.length) {
-      console.error('Missing userId or products in Stripe session metadata', session.metadata);
-      return res.status(400).json({ success: false, message: 'Missing userId or products in metadata' });
+    const productIds = session.metadata?.productIds
+      ? session.metadata.productIds.split(',').filter(Boolean)
+      : [];
+    if (!userId || !productIds.length) {
+      console.error('Missing userId or productIds in Stripe session metadata', session.metadata);
+      return res.status(400).json({ success: false, message: 'Missing userId or productIds in metadata' });
     }
     const totalAmount = session.amount_total / 100;
     const transactionId = session.id;
