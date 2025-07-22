@@ -1,4 +1,9 @@
 import Transaction from '../models/Transaction.js';
+import Stripe from 'stripe';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
 
 export const createTransaction = async (req, res) => {
   try {
@@ -6,7 +11,7 @@ export const createTransaction = async (req, res) => {
       userId,
       products,
       totalAmount,
-      paymentMethod,
+      paymentStatus,
       transactionId,
     } = req.body;
 
@@ -36,4 +41,85 @@ export const getTransactions = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// Create Stripe Checkout Session
+export const createCheckoutSession = async (req, res) => {
+  try {
+    const { userId, products, items } = req.body;
+    // products: [{ productId, name, price, quantity }]
+    const cartProducts = products || items; // use whichever is present
+
+    if (!cartProducts) {
+      return res.status(400).json({ success: false, message: 'No products/items provided' });
+    }
+
+    const line_items = cartProducts.map((item) => ({
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: item.name,
+        },
+        unit_amount: Math.round(item.price * 100), // Stripe expects cents
+      },
+      quantity: item.quantity,
+    }));
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items,
+      mode: 'payment',
+      success_url: `http://localhost:8080/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:8080/cancel`,
+      metadata: {
+        userId,
+        products: JSON.stringify(products),
+      },
+    });
+
+    res.status(200).json({ url: session.url });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Stripe Webhook Handler
+export const stripeWebhook = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body, // ✅ Use req.body after express.raw
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const userId = session.metadata.userId;
+    const products = JSON.parse(session.metadata.products);
+    const totalAmount = session.amount_total / 100;
+    const transactionId = session.id;
+    const paymentStatus = session.payment_status;
+
+    try {
+      const transaction = new Transaction({
+        userId,
+        products,
+        totalAmount,
+        paymentStatus,
+        transactionId,
+      });
+      await transaction.save();
+    } catch (err) {
+      return res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  res.status(200).json({ received: true });
+};
+
 

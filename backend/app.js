@@ -17,9 +17,11 @@ const app = express();
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
+// Stripe webhook needs raw body
+app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
+// Other routes use JSON
 app.use(express.json());
 
 // Connect DB
