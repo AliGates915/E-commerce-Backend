@@ -98,7 +98,7 @@ export const createCheckoutSession = async (req, res) => {
 // Stripe Webhook Handler
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8'; // Use env variable!
+  const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';
   let event;
 
   try {
@@ -111,9 +111,6 @@ export const stripeWebhook = async (req, res) => {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
-  // Log the event for debugging
-  console.log('Stripe webhook event:', JSON.stringify(event, null, 2));
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
@@ -131,7 +128,7 @@ export const stripeWebhook = async (req, res) => {
     const transactionId = session.id;
     const paymentStatus = session.payment_status;
 
-    // Log the transaction data
+    // Log what will be saved
     console.log('Saving transaction:', {
       userId,
       products,
@@ -142,13 +139,14 @@ export const stripeWebhook = async (req, res) => {
 
     try {
       const transaction = new Transaction({
-        userId, // <-- just use the string directly
-        products,
+        userId, // <-- as string
+        products, // <-- array of { name }
         totalAmount,
         paymentStatus,
         transactionId,
       });
       await transaction.save();
+      console.log('Transaction saved successfully!');
     } catch (err) {
       console.error('Error saving transaction:', err);
       return res.status(500).json({ success: false, message: err.message });
