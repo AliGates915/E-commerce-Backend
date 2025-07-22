@@ -2,9 +2,9 @@
   "name": "ecommerce-backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
