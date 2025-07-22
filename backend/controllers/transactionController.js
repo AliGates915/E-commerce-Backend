@@ -72,7 +72,7 @@ export const createCheckoutSession = async (req, res) => {
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
         userId,
-        products: JSON.stringify(products),
+        products: JSON.stringify(cartProducts), // or products/items
       },
     });
 
@@ -99,8 +99,19 @@ export const stripeWebhook = async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const userId = session.metadata.userId;
-    const products = JSON.parse(session.metadata.products);
+    const userId = session.metadata?.userId;
+    let products = [];
+    if (session.metadata?.products) {
+      try {
+        products = JSON.parse(session.metadata.products);
+      } catch (e) {
+        products = [];
+      }
+    }
+    if (!userId || !products.length) {
+      console.error('Missing userId or products in Stripe session metadata');
+      return res.status(400).json({ success: false, message: 'Missing userId or products in metadata' });
+    }
     const totalAmount = session.amount_total / 100;
     const transactionId = session.id;
     const paymentStatus = session.payment_status;
