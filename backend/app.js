@@ -31,6 +31,11 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/transactions', transactionRoutes);
 
+app.get("/", (req, res) => {
+  res.send("API is working!");
+});
+
+
 // Only listen in development
 if (process.env.NODE_ENV !== "production") {
   const port = process.env.PORT || 5000;
