@@ -47,7 +47,6 @@ export const getTransactions = async (req, res) => {
 export const createCheckoutSession = async (req, res) => {
   try {
     const { userId, products, items } = req.body;
-    // products: [{ productId, name, price, quantity }]
     let cartProducts = products || items;
     if (typeof cartProducts === 'string') {
       try {
@@ -61,31 +60,30 @@ export const createCheckoutSession = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No products/items provided' });
     }
 
-    const line_items = cartProducts.map((item) => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
-        },
-        unit_amount: Math.round(item.price * 100), // Stripe expects cents
-      },
-      quantity: item.quantity,
-    }));
-
     const productNames = cartProducts
       .map(item => item.name)
       .filter(Boolean)
       .join(',');
 
+    // LOG userId for debugging
+    console.log('userId for Stripe session:', userId);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items,
+      line_items: cartProducts.map((item) => ({
+        price_data: {
+          currency: 'usd',
+          product_data: { name: item.name },
+          unit_amount: item.price, // already in cents
+        },
+        quantity: item.quantity,
+      })),
       mode: 'payment',
       success_url: `http://localhost:8080/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
-        userId, 
-        productNames, // <-- this is a comma-separated string
+        userId, // <-- this must be present and not undefined!
+        productNames,
       },
     });
 
