@@ -64,9 +64,9 @@ export const createCheckoutSession = async (req, res) => {
       quantity: item.quantity,
     }));
 
-    const productIds = cartProducts
-      .map(item => item.productId)
-      .filter(Boolean) // removes undefined/null/empty
+    const productNames = cartProducts
+      .map(item => item.name)
+      .filter(Boolean)
       .join(',');
 
     const session = await stripe.checkout.sessions.create({
@@ -77,7 +77,7 @@ export const createCheckoutSession = async (req, res) => {
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
         userId,
-        productIds,
+        productNames,
       },
     });
 
