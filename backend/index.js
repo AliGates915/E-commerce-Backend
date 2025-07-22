@@ -17,16 +17,16 @@ app.use(cors());
 app.use(express.json());
 
 // Logging middleware
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  if (Object.keys(req.body).length) {
-    console.log('Body:', req.body);
-  }
-  if (Object.keys(req.query).length) {
-    console.log('Query:', req.query);
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+//   if (Object.keys(req.body).length) {
+//     console.log('Body:', req.body);
+//   }
+//   if (Object.keys(req.query).length) {
+//     console.log('Query:', req.query);
+//   }
+//   next();
+// });
 
 connectDB();
 
