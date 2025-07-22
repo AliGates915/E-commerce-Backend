@@ -1,6 +1,7 @@
 import Transaction from '../models/Transaction.js';
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
@@ -16,7 +17,7 @@ export const createTransaction = async (req, res) => {
     } = req.body;
 
     const transaction = new Transaction({
-      userId,
+      userId: mongoose.Types.ObjectId(userId),
       products,
       totalAmount,
       paymentMethod,
@@ -122,7 +123,7 @@ export const stripeWebhook = async (req, res) => {
       : [];
     const products = productNames.map(name => ({ name }));
 
-    if (!userId || !productNames.length) {
+    if (!userId || !products.length) {
       console.error('Missing userId or productNames in Stripe session metadata', session.metadata);
       return res.status(400).json({ success: false, message: 'Missing userId or productNames in metadata' });
     }
@@ -130,10 +131,19 @@ export const stripeWebhook = async (req, res) => {
     const transactionId = session.id;
     const paymentStatus = session.payment_status;
 
+    // Log the transaction data
+    console.log('Saving transaction:', {
+      userId,
+      products,
+      totalAmount,
+      paymentStatus,
+      transactionId,
+    });
+
     try {
       const transaction = new Transaction({
-        userId,
-        products, // now an array of objects with 'name'
+        userId: mongoose.Types.ObjectId(userId),
+        products,
         totalAmount,
         paymentStatus,
         transactionId,
