@@ -95,63 +95,69 @@ export const createCheckoutSession = async (req, res) => {
 
 // Stripe Webhook Handler
 export const stripeWebhook = async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';
-  let event;
-
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body, // Use req.body after express.raw
-      sig,
-      STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const userId = session.metadata?.userId;
-    const productNames = session.metadata?.productNames
-      ? session.metadata.productNames.split(',').filter(Boolean)
-      : [];
-    const products = productNames.map(name => ({ name }));
-
-    if (!userId || !products.length) {
-      console.error('Missing userId or productNames in Stripe session metadata', session.metadata);
-      return res.status(400).json({ success: false, message: 'Missing userId or productNames in metadata' });
-    }
-    const totalAmount = session.amount_total / 100;
-    const transactionId = session.id;
-    const paymentStatus = session.payment_status;
-
-    // Log what will be saved
-    console.log('Saving transaction:', {
-      userId,
-      products,
-      totalAmount,
-      paymentStatus,
-      transactionId,
-    });
+    const sig = req.headers['stripe-signature'];
+    const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';
+    let event;
 
     try {
-      const transaction = new Transaction({
-        userId, // <-- as string
-        products, // <-- array of { name }
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const userId = session.metadata?.userId;
+      const productNames = session.metadata?.productNames
+        ? session.metadata.productNames.split(',').filter(Boolean)
+        : [];
+      const products = productNames.map(name => ({ name }));
+
+      if (!userId || !products.length) {
+        console.error('Missing userId or productNames in Stripe session metadata', session.metadata);
+        return res.status(400).json({ success: false, message: 'Missing userId or productNames in metadata' });
+      }
+      const totalAmount = session.amount_total / 100;
+      const transactionId = session.id;
+      const paymentStatus = session.payment_status;
+
+      // Log what will be saved
+      console.log('Saving transaction:', {
+        userId,
+        products,
         totalAmount,
         paymentStatus,
         transactionId,
       });
-      await transaction.save();
-      console.log('Transaction saved successfully!');
-    } catch (err) {
-      console.error('Error saving transaction:', err); // <--- This will show the real error!
-      return res.status(500).json({ success: false, message: err.message });
-    }
-  }
 
-  res.status(200).json({ received: true });
+      try {
+        const transaction = new Transaction({
+          userId,
+          products,
+          totalAmount,
+          paymentStatus,
+          transactionId,
+        });
+        await transaction.save();
+        console.log('Transaction saved successfully!');
+      } catch (err) {
+        console.error('Error saving transaction:', err);
+        return res.status(500).json({ success: false, message: err.message });
+      }
+    }
+
+    res.status(200).json({ received: true });
+  } catch (err) {
+    // Top-level catch for any unhandled errors
+    console.error('Top-level webhook error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
 };
 
 
