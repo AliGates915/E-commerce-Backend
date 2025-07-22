@@ -13,11 +13,15 @@ dotenv.config();
 
 const app = express();
 
-// CORS
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-}));
+// Allow your frontend origin
+const corsOptions = {
+  origin: ['http://localhost:8080','https://e-commerce-frontend-sandy-delta.vercel.app/'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 // Stripe webhook needs raw body
 app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
