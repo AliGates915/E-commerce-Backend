@@ -3,25 +3,19 @@ import mongoose from 'mongoose';
 const transactionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // assuming you have a User model
+    ref: 'User',
     required: true,
   },
   products: [
     {
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true,
-      },
-      quantity: { type: Number, required: true },
-      price: { type: Number, required: true }, // unit price at time of purchase
+      name: { type: String, required: true }
+      // You can add more fields here if needed in the future
     }
   ],
   totalAmount: {
     type: Number,
     required: true,
   },
-  
   paymentStatus: {
     type: String,
     enum: ['pending', 'completed', 'failed', 'refunded'],
