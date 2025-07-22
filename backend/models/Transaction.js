@@ -8,7 +8,7 @@ const transactionSchema = new mongoose.Schema({
   products: [
     {
       name: { type: String, required: true }
-      // You can add more fields here if needed
+      
     }
   ],
   totalAmount: {

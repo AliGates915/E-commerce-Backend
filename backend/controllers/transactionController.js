@@ -148,7 +148,7 @@ export const stripeWebhook = async (req, res) => {
       await transaction.save();
       console.log('Transaction saved successfully!');
     } catch (err) {
-      console.error('Error saving transaction:', err);
+      console.error('Error saving transaction:', err); // <--- This will show the real error!
       return res.status(500).json({ success: false, message: err.message });
     }
   }
