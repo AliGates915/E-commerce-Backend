@@ -85,7 +85,7 @@ export const createCheckoutSession = async (req, res) => {
 // Stripe Webhook Handler
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';; // Use env variable!
+  const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8'; // Use env variable!
   let event;
 
   try {
