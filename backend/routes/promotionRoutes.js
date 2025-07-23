@@ -4,7 +4,8 @@ import {
   getPromotions,
   getPromotionById,
   updatePromotion,
-  deletePromotion
+  deletePromotion,
+  getEnabledPromotionsWithProducts
 } from '../controllers/promotionController.js';
 
 const router = express.Router();
@@ -14,7 +15,9 @@ router.post('/', createPromotion);
 
 // READ
 router.get('/', getPromotions);
+router.get('/sections', getEnabledPromotionsWithProducts);
 router.get('/:id', getPromotionById);
+
 
 // UPDATE (This is what you need to add/verify)
 router.patch('/:id', updatePromotion);

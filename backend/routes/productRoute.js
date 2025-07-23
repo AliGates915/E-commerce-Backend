@@ -10,7 +10,8 @@ import {
   getAllProducts,
   removeProductImage,
   getFeatureProducts,
-  getDiscountProducts
+  getDiscountProducts,
+  getProductsWithEnabledCategories
 } from '../controllers/productController.js';
 
 const router = express.Router();
@@ -19,6 +20,7 @@ const upload = multer({ storage });
 // CRUD routes
 router.get('/', getAllProducts);
 router.post('/add', upload.array('images'), addProduct);
+router.get('/enabled', getProductsWithEnabledCategories);
 // ... other routes
 router.get('/features', getFeatureProducts);
 router.get('/discounts', getDiscountProducts);
