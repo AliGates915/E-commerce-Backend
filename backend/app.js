@@ -18,10 +18,10 @@ const app = express();
 const corsOptions = {
   origin: [
     'http://localhost:8080',
-    'https://e-commerce-frontend-sandy-delta.vercel.app' // <-- REMOVE the trailing slash!
+    'https://e-commerce-frontend-sandy-delta.vercel.app'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  
 };
 app.use(cors(corsOptions));
 
