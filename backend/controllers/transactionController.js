@@ -37,9 +37,7 @@ export const createTransaction = async (req, res) => {
 export const getTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find()
-      .populate('userId', 'name email')
-      .populate('products.productId', 'name price');
-
+      .populate('userId', 'name email');
     res.status(200).json({ success: true, data: transactions });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
