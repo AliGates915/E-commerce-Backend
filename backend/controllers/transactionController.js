@@ -147,7 +147,6 @@ export const stripeWebhook = async (req, res) => {
       await transaction.save();
       console.log('Transaction saved successfully!');
     } catch (err) {
-      // Most likely cause: duplicate transactionId (unique constraint)
       if (err.code === 11000) {
         console.warn('Duplicate transactionId, already saved:', transactionId);
         return res.status(200).json({ received: true, duplicate: true });

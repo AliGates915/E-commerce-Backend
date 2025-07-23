@@ -13,14 +13,13 @@ dotenv.config();
 
 const app = express();
 
-// Allow your frontend origin
+// CORS setup
 const corsOptions = {
   origin: ['http://localhost:8080','https://e-commerce-frontend-sandy-delta.vercel.app/'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
-
 app.use(cors(corsOptions));
 
 // Stripe webhook needs raw body
@@ -43,15 +42,6 @@ app.use('/api/transactions', transactionRoutes);
 app.get("/", (req, res) => {
   res.send("API is working!");
 });
-
-
-// Only listen in development
-if (process.env.NODE_ENV !== "production") {
-  const port = process.env.PORT || 5000;
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
-}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
