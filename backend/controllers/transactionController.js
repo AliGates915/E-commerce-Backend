@@ -74,7 +74,7 @@ export const createCheckoutSession = async (req, res) => {
       payment_method_types: ['card'],
       line_items: cartProducts.map((item) => ({
         price_data: {
-          currency: 'usd', // <-- Set to PKR
+          currency: 'pkr', // <-- Set to PKR
           product_data: { name: item.name },
           unit_amount: item.price * 100, // <-- Multiply by 100 for paisa
         },
