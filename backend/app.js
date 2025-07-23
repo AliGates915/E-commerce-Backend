@@ -26,7 +26,7 @@ app.use(cors(corsOptions));
 // Stripe webhook needs raw body
 app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
 
-// Other routes use JSON
+// All other routes use JSON
 app.use(express.json());
 
 // Connect DB
