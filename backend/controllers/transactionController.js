@@ -55,6 +55,8 @@ export const createCheckoutSession = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid products format' });
       }
     }
+    console.log("cartProducts",items);
+    
 
     if (!cartProducts) {
       return res.status(400).json({ success: false, message: 'No products/items provided' });
@@ -72,9 +74,9 @@ export const createCheckoutSession = async (req, res) => {
       payment_method_types: ['card'],
       line_items: cartProducts.map((item) => ({
         price_data: {
-          currency: 'usd',
+          currency: 'usd', // <-- Set to PKR
           product_data: { name: item.name },
-          unit_amount: item.price, // already in cents
+          unit_amount: item.price * 100, // <-- Multiply by 100 for paisa
         },
         quantity: item.quantity,
       })),
@@ -82,7 +84,7 @@ export const createCheckoutSession = async (req, res) => {
       success_url: `http://localhost:8080/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `http://localhost:8080/cancel`,
       metadata: {
-        userId, // <-- this must be present and not undefined!
+        userId,
         productNames,
       },
     });
