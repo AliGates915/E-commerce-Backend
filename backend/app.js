@@ -8,6 +8,7 @@ import productRoute from './routes/productRoute.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import promotionRoutes from './routes/promotionRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use('/api/products', productRoute);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is working!");

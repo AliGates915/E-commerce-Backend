@@ -2,6 +2,9 @@ import Transaction from '../models/Transaction.js';
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import Cart from '../models/Cart.js';
+import Product from '../models/Product.js';
+import Order from '../models/Order.js'; // import your new Order model
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
@@ -146,6 +149,34 @@ export const stripeWebhook = async (req, res) => {
       });
       await transaction.save();
       console.log('Transaction saved successfully!');
+
+      // 1. Clear the user's cart
+      await Cart.findOneAndUpdate(
+        { userId },
+        { $set: { items: [] } }
+      );
+      console.log('Cart cleared for user:', userId);
+
+      // 2. Update the stock of the products
+      for (const prod of products) {
+        // Find the product in the DB and decrement stock
+        await Product.findOneAndUpdate(
+          { name: prod.name },
+          { $inc: { stock: -prod.quantity } }
+        );
+      }
+      console.log('Product stock updated.');
+
+      // 3. Create a new order
+      const order = new Order({
+        userId,
+        products,
+        totalAmount,
+        paymentStatus,
+        transactionId,
+      });
+      await order.save();
+      console.log('Order created successfully!');
     } catch (err) {
       if (err.code === 11000) {
         console.warn('Duplicate transactionId, already saved:', transactionId);
