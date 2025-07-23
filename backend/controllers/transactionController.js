@@ -100,12 +100,13 @@ export const createCheckoutSession = async (req, res) => {
 
 // Stripe Webhook Handler
 export const stripeWebhook = async (req, res) => {
+
   console.log("stripeWebhook");
   
   const sig = req.headers['stripe-signature'];
   const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';
-
-  let event;
+  console.log('Stripe webhook endpoint called');
+    let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
   } catch (err) {

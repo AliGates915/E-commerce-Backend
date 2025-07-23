@@ -16,10 +16,12 @@ const app = express();
 
 // CORS setup
 const corsOptions = {
-  origin: ['http://localhost:8080','https://e-commerce-frontend-sandy-delta.vercel.app/'],
+  origin: [
+    'http://localhost:8080',
+    'https://e-commerce-frontend-sandy-delta.vercel.app' // <-- REMOVE the trailing slash!
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
 };
 app.use(cors(corsOptions));
 
