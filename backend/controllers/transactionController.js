@@ -82,8 +82,8 @@ export const createCheckoutSession = async (req, res) => {
         quantity: item.quantity,
       })),
       mode: 'payment',
-      success_url: `http://localhost:8080/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:8080/cancel`,
+      success_url: `https://www.wahidfoodssmc.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://www.wahidfoodssmc.com/cancel`,
       metadata: {
         userId,
         productNames,
