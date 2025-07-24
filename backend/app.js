@@ -19,7 +19,11 @@ const corsOptions = {
   origin: [
     'http://localhost:8080',
     'https://e-commerce-frontend-sandy-delta.vercel.app',
-    'https://www.wahidfoodssmc.com'
+    'https://www.wahidfoodssmc.com',
+    'https://wahidfoodssmc.com',
+    'https://wahidfoods.com',
+    'http://localhost:8081',
+    'https://infinity-byte-frontend.vercel.app'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   
