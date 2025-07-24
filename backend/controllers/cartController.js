@@ -64,3 +64,26 @@ export const clearCart = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Remove product from cart
+export const removeFromCart = async (req, res) => {
+  const { userId, productId } = req.body;
+  if (!userId || !productId) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    // Remove the item
+    cart.items = cart.items.filter(item => item.productId.toString() !== productId);
+    await cart.save();
+
+    res.status(200).json({ message: "Product removed from cart", cart });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
+};
