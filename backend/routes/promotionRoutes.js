@@ -5,7 +5,8 @@ import {
   getPromotionById,
   updatePromotion,
   deletePromotion,
-  getEnabledPromotionsWithProducts
+  getEnabledPromotionsWithProducts,
+  getProductsByPromotionName
 } from '../controllers/promotionController.js';
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.post('/', createPromotion);
 // READ
 router.get('/', getPromotions);
 router.get('/sections', getEnabledPromotionsWithProducts);
+router.get('/:promotionName', getProductsByPromotionName);
 router.get('/:id', getPromotionById);
 
 

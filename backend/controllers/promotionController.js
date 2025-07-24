@@ -96,3 +96,28 @@ export const deletePromotion = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// Get products by promotion name
+export const getProductsByPromotionName = async (req, res) => {
+  try {
+    const { promotionName } = req.params;
+    // Find the promotion by name (case-insensitive)
+    const promotion = await Promotion.findOne({ name: { $regex: new RegExp(`^${promotionName}$`, 'i') } });
+    if (!promotion) {
+      return res.status(404).json({ success: false, message: 'Promotion not found' });
+    }
+
+    // Find products with this promotion
+    const products = await Product.find({ promotion: promotion._id }).populate('category');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        promotion: promotion.name,
+        products,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
