@@ -37,9 +37,7 @@ export const createTransaction = async (req, res) => {
 export const getTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find()
-      .populate('userId', 'name email')
-      .populate('products.productId', 'name price');
-
+      .populate('userId', 'name email');
     res.status(200).json({ success: true, data: transactions });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -100,12 +98,13 @@ export const createCheckoutSession = async (req, res) => {
 
 // Stripe Webhook Handler
 export const stripeWebhook = async (req, res) => {
+
   console.log("stripeWebhook");
   
   const sig = req.headers['stripe-signature'];
   const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';
-
-  let event;
+  console.log('Stripe webhook endpoint called');
+    let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
   } catch (err) {

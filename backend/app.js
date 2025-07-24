@@ -16,10 +16,13 @@ const app = express();
 
 // CORS setup
 const corsOptions = {
-  origin: ['http://localhost:8080','https://e-commerce-frontend-sandy-delta.vercel.app', 'https://www.wahidfoodssmc.com'],
+  origin: [
+    'http://localhost:8080',
+    'https://e-commerce-frontend-sandy-delta.vercel.app',
+    'https://www.wahidfoodssmc.com'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
+  
 };
 app.use(cors(corsOptions));
 

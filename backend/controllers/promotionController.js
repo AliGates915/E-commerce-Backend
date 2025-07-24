@@ -1,5 +1,5 @@
 import Promotion from '../models/Promotion.js';
-
+import Product from '../models/Product.js';
 // CREATE Promotion
 export const createPromotion = async (req, res) => {
   try {
@@ -10,6 +10,30 @@ export const createPromotion = async (req, res) => {
     });
     await promotion.save();
     res.status(201).json({ success: true, data: promotion });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+export const getEnabledPromotionsWithProducts = async (req, res) => {
+  try {
+    // Get all enabled promotions
+    const promotions = await Promotion.find({ isEnable: true });
+
+    // For each promotion, get products associated with it
+    const promotionSections = await Promise.all(
+      promotions.map(async (promotion) => {
+        const products = await Product.find({ promotion: promotion._id });
+        return {
+          _id: promotion._id,
+          name: promotion.name,
+          products,
+        };
+      })
+    );
+
+    res.status(200).json({ success: true, data: promotionSections });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

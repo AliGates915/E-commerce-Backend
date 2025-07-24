@@ -1,6 +1,8 @@
 import Product from '../models/Product.js';
 import { cloudinary } from '../config/cloudinary.js';
 import Promotion from '../models/Promotion.js'; // Make sure this is imported
+import Category from '../models/Category.js';
+
 
 // GET All Products (with optional limit and sort)
 export const getAllProducts = async (req, res) => {
@@ -27,6 +29,29 @@ export const getAllProducts = async (req, res) => {
 
     const products = await query.exec();
     res.status(200).json({ success: true, data: products });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET all products with enabled categories
+export const getProductsWithEnabledCategories = async (req, res) => {
+  try {
+    // Find enabled categories
+    const enabledCategories = await Category.find({ isEnable: true });
+    const enabledCategoryIds = enabledCategories.map(cat => cat._id);
+
+    // Find products whose category is enabled
+    const products = await Product.find({ category: { $in: enabledCategoryIds } })
+      .populate('category');
+
+    res.status(200).json({
+      success: true,
+      data: {
+        products,
+        categories: enabledCategories,
+      }
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
