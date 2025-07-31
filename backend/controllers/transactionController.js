@@ -47,7 +47,8 @@ export const getTransactions = async (req, res) => {
 // Create Stripe Checkout Session
 export const createCheckoutSession = async (req, res) => {
   try {
-    const { userId, products, items } = req.body;
+    // Add success_url and cancel_url to destructure from req.body
+    const { userId, products, items, success_url, cancel_url } = req.body;
     let cartProducts = products || items;
     if (typeof cartProducts === 'string') {
       try {
@@ -56,8 +57,6 @@ export const createCheckoutSession = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid products format' });
       }
     }
-    console.log("cartProducts",items);
-    
 
     if (!cartProducts) {
       return res.status(400).json({ success: false, message: 'No products/items provided' });
@@ -68,22 +67,20 @@ export const createCheckoutSession = async (req, res) => {
       .filter(Boolean)
       .join(',');
 
-    // LOG userId for debugging
-    console.log('userId for Stripe session:', userId);
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: cartProducts.map((item) => ({
         price_data: {
-          currency: 'usd', // <-- Set to USD for now
+          currency: 'usd',
           product_data: { name: item.name },
-          unit_amount: item.price * 100, // <-- Multiply by 100 for USD
+          unit_amount: item.price * 100,
         },
         quantity: item.quantity,
       })),
       mode: 'payment',
-      success_url: `https://www.wahidfoodssmc.com/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://www.wahidfoodssmc.com/cancel`,
+      // Use custom URLs if provided, otherwise fallback to default
+      success_url: success_url || `https://www.wahidfoodssmc.com/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancel_url || `https://www.wahidfoodssmc.com/cancel`,
       metadata: {
         userId,
         productNames,
