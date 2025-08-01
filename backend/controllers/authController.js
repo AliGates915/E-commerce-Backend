@@ -2,7 +2,7 @@ import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import nodemailer from "nodemailer";
+import emailjs from '@emailjs/browser';
 
 export const register = async (req, res) => {
     try {
@@ -142,69 +142,37 @@ export const forgotPassword = async (req, res) => {
     // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/reset-password/${resetToken}`;
 
-    // Email content
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
-        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #333; margin-bottom: 10px;">Password Reset Request</h1>
-            <p style="color: #666; font-size: 16px;">Hello ${user.name || user.username},</p>
-          </div>
-          
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-            <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-              You requested a password reset for your account. Click the button below to reset your password:
-            </p>
-            
-            <div style="text-align: center;">
-              <a href="${resetUrl}" 
-                 style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-                Reset Password
-              </a>
-            </div>
-          </div>
-          
-          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
-            <p style="color: #856404; margin: 0; font-size: 14px;">
-              <strong>Important:</strong> This link will expire in 1 hour for security reasons.
-            </p>
-          </div>
-          
-          <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
-            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
-              If you didn't request this password reset, please ignore this email or contact our support team.
-            </p>
-            <p style="color: #666; font-size: 14px; margin: 0;">
-              Best regards,<br>
-              <strong>Your E-commerce Team</strong>
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
+    // EmailJS template parameters
+    const templateParams = {
+      to_name: user.name || user.username,
+      from_name: "Your E-commerce Team",
+      message: `You requested a password reset for your account. Click the link below to reset your password:
 
-    // Send email
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER || 'aligatez915@gmail.com',
-        pass: process.env.EMAIL_PASSWORD || 'ali.github.915'
-      }
-    });
+${resetUrl}
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER || 'aligatez915@gmail.com',
-      to: email,
-      subject: 'Password Reset Request - Your E-commerce Store',
-      html: emailContent
+This link will expire in 1 hour for security reasons.
+
+If you didn't request this password reset, please ignore this email.`
     };
 
-    await transporter.sendMail(mailOptions);
+    // Send email using EmailJS
+    const response = await emailjs.send(
+      'service_fkpzids', // Your service ID
+      'template_x7nkpt8', // Your template ID
+      templateParams,
+      {
+        publicKey: process.env.EMAILJS_PUBLIC_KEY || 'c260475e-81b1-4c8e-b616-30ba828dc63a'
+      }
+    );
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Password reset email sent successfully. Please check your email." 
-    });
+    if (response.status === 200) {
+      res.status(200).json({ 
+        success: true, 
+        message: "Password reset email sent successfully. Please check your email." 
+      });
+    } else {
+      throw new Error('Failed to send email');
+    }
 
   } catch (err) {
     res.status(500).json({ 
