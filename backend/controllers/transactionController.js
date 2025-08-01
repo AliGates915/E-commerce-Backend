@@ -189,4 +189,34 @@ export const stripeWebhook = async (req, res) => {
   res.status(200).json({ received: true });
 };
 
+// Get transaction history for a specific user with completed payment status
+export const getUserTransactionHistory = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User ID is required' 
+      });
+    }
+
+    const transactions = await Transaction.find({
+      userId: userId,
+      paymentStatus: 'completed'
+    }).sort({ createdAt: -1 }); // Sort by newest first
+
+    res.status(200).json({ 
+      success: true, 
+      data: transactions,
+      count: transactions.length
+    });
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+};
+
 
