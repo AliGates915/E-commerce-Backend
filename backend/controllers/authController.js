@@ -214,3 +214,57 @@ export const forgotPassword = async (req, res) => {
     });
   }
 };
+
+// Reset Password
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Token and new password are required" 
+      });
+    }
+
+    // Hash the token to compare with stored token
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    // Find user with valid token and not expired
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid or expired reset token" 
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user password and clear reset token
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Password reset successfully. You can now login with your new password." 
+    });
+
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to reset password", 
+      error: err.message 
+    });
+  }
+};
