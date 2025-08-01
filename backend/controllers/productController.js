@@ -265,3 +265,51 @@ export const getDiscountProducts = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// GET products by specific category name
+export const getProductsByCategoryName = async (req, res) => {
+  try {
+    const { categoryName } = req.params;
+    
+    console.log("Requested categoryName:", categoryName);
+
+    // First, find the category by name (case-insensitive)
+    const category = await Category.findOne({ 
+      name: { $regex: new RegExp(categoryName, 'i') },
+      isEnable: true 
+    });
+    
+    console.log("Found category:", category);
+
+    if (!category) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `Category '${categoryName}' not found or not enabled` 
+      });
+    }
+
+    // Get all products that belong to this category
+    const products = await Product.find({ 
+      category: category._id 
+    })
+    .populate('category', 'name isEnable')
+    .populate('promotion', 'name');
+
+    console.log("Found products:", products.length);
+
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        category: {
+          _id: category._id,
+          name: category.name,
+          isEnable: category.isEnable
+        },
+        products: products
+      },
+      totalProducts: products.length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

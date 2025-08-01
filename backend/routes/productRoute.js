@@ -11,7 +11,8 @@ import {
   removeProductImage,
   getFeatureProducts,
   getDiscountProducts,
-  getProductsWithEnabledCategories
+  getProductsWithEnabledCategories,
+  getProductsByCategoryName
 } from '../controllers/productController.js';
 
 const router = express.Router();
@@ -21,6 +22,8 @@ const upload = multer({ storage });
 router.get('/', getAllProducts);
 router.post('/add', upload.array('images'), addProduct);
 router.get('/enabled', getProductsWithEnabledCategories);
+
+router.get('/:categoryName', getProductsByCategoryName);
 // ... other routes
 router.get('/features', getFeatureProducts);
 router.get('/discounts', getDiscountProducts);
