@@ -13,6 +13,9 @@ const userSchema = new mongoose.Schema({
     enum: ["pending", "suspend", "active"], 
     default: "pending" 
   },
+  // Password reset fields
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date },
 }, { timestamps: true });
 
 export const User = mongoose.model("User", userSchema);

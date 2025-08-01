@@ -1,6 +1,8 @@
 import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 export const register = async (req, res) => {
     try {
@@ -98,5 +100,117 @@ export const getAllUsers = async (req, res) => {
     res.status(200).json({ success: true, data: users });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to fetch users", error: err.message });
+  }
+};
+
+// Forgot Password
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Email is required" 
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User with this email does not exist" 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetPasswordToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // Set token expiration (1 hour from now)
+    const resetPasswordExpires = Date.now() + 3600000; // 1 hour
+
+    // Save token to database
+    user.resetPasswordToken = resetPasswordToken;
+    user.resetPasswordExpires = resetPasswordExpires;
+    await user.save();
+
+    // Create reset URL
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/reset-password/${resetToken}`;
+
+    // Email content
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #333; margin-bottom: 10px;">Password Reset Request</h1>
+            <p style="color: #666; font-size: 16px;">Hello ${user.name || user.username},</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+            <p style="color: #333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+              You requested a password reset for your account. Click the button below to reset your password:
+            </p>
+            
+            <div style="text-align: center;">
+              <a href="${resetUrl}" 
+                 style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                Reset Password
+              </a>
+            </div>
+          </div>
+          
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
+            <p style="color: #856404; margin: 0; font-size: 14px;">
+              <strong>Important:</strong> This link will expire in 1 hour for security reasons.
+            </p>
+          </div>
+          
+          <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+              If you didn't request this password reset, please ignore this email or contact our support team.
+            </p>
+            <p style="color: #666; font-size: 14px; margin: 0;">
+              Best regards,<br>
+              <strong>Your E-commerce Team</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Send email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'hacktech877@gmail.com',
+        pass: 'Anonymous.2207'
+      }
+    });
+
+    const mailOptions = {
+      from: 'hacktech877@gmail.com',
+      to: email,
+      subject: 'Password Reset Request - Your E-commerce Store',
+      html: emailContent
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Password reset email sent successfully. Please check your email." 
+    });
+
+  } catch (err) {
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to send password reset email", 
+      error: err.message 
+    });
   }
 };
