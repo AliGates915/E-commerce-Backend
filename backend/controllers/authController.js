@@ -187,13 +187,13 @@ export const forgotPassword = async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER || 'hacktech877@gmail.com',
-        pass: process.env.EMAIL_PASSWORD || 'Anonymous.2207'
+        user: process.env.EMAIL_USER || 'aligatez915@gmail.com',
+        pass: process.env.EMAIL_PASSWORD || 'ali.github.915'
       }
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'hacktech877@gmail.com',
+      from: process.env.EMAIL_USER || 'aligatez915@gmail.com',
       to: email,
       subject: 'Password Reset Request - Your E-commerce Store',
       html: emailContent
