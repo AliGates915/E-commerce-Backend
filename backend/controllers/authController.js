@@ -2,7 +2,7 @@ import { User } from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import emailjs from '@emailjs/browser';
+import nodemailer from "nodemailer";
 
 export const register = async (req, res) => {
     try {
@@ -142,37 +142,41 @@ export const forgotPassword = async (req, res) => {
     // Create reset URL
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/reset-password/${resetToken}`;
 
-    // EmailJS template parameters
-    const templateParams = {
-      to_name: user.name || user.username,
-      from_name: "Your E-commerce Team",
-      message: `You requested a password reset for your account. Click the link below to reset your password:
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'hacktech877@gmail.com',
+        pass: 'Anonymous.2207' // Use Gmail App Password
+      }
+    });
 
-${resetUrl}
-
-This link will expire in 1 hour for security reasons.
-
-If you didn't request this password reset, please ignore this email.`
+    // Email content
+    const mailOptions = {
+      from: 'hacktech877@gmail.com',
+      to: email,
+      subject: 'Password Reset Request - Your E-commerce Store',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2>Password Reset Request</h2>
+          <p>Hello ${user.name || user.username},</p>
+          <p>You requested a password reset for your account. Click the link below to reset your password:</p>
+          <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Reset Password
+          </a>
+          <p><strong>Important:</strong> This link will expire in 1 hour for security reasons.</p>
+          <p>If you didn't request this password reset, please ignore this email.</p>
+          <p>Best regards,<br>Your E-commerce Team</p>
+        </div>
+      `
     };
 
-    // Send email using EmailJS
-    const response = await emailjs.send(
-      'service_fkpzids', // Your service ID
-      'template_x7nkpt8', // Your template ID
-      templateParams,
-      {
-        publicKey: process.env.EMAILJS_PUBLIC_KEY || 'c260475e-81b1-4c8e-b616-30ba828dc63a'
-      }
-    );
+    await transporter.sendMail(mailOptions);
 
-    if (response.status === 200) {
-      res.status(200).json({ 
-        success: true, 
-        message: "Password reset email sent successfully. Please check your email." 
-      });
-    } else {
-      throw new Error('Failed to send email');
-    }
+    res.status(200).json({ 
+      success: true, 
+      message: "Password reset email sent successfully. Please check your email." 
+    });
 
   } catch (err) {
     res.status(500).json({ 
