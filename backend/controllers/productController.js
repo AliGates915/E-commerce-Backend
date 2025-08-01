@@ -223,6 +223,7 @@ export const getFeatureProducts = async (req, res) => {
     const featurePromos = await Promotion.find({
       name: { $regex: /^features$/i }
     });
+    console.log("featurePromos", featurePromos);
 
     if (!featurePromos.length) {
       return res.status(200).json({ success: true, data: [] });
