@@ -27,9 +27,9 @@ router.get('/discounts', getDiscountProducts);
 
 // Product CRUD operations
 router.post('/add', upload.array('images'), addProduct);
-router.get('/:id', getProductById);
-router.put('/:id', upload.array('images'), updateProduct);
-router.delete('/:id', deleteProduct);
+router.get('/:id([0-9a-fA-F]{24})', getProductById);
+router.put('/:id([0-9a-fA-F]{24})', upload.array('images'), updateProduct);
+router.delete('/:id([0-9a-fA-F]{24})', deleteProduct);
 
 // Image operations
 router.delete('/:productId/images/:publicId', removeProductImage);
