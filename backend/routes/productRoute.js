@@ -35,7 +35,7 @@ router.delete('/:id', deleteProduct);
 router.delete('/:productId/images/:publicId', removeProductImage);
 
 // Category-based routes - Keep this last to avoid conflicts
-router.get('/category/:categoryName', getProductsByCategoryName);
+router.get('/:categoryName', getProductsByCategoryName);
 
 export default router;
 
