@@ -117,10 +117,25 @@ export const stripeWebhook = async (req, res) => {
     const productNames = session.metadata?.productNames
       ? session.metadata.productNames.split(',').filter(Boolean)
       : [];
-    // TEMP: Assume quantity 1 for each product
-    const products = productNames.map(name => ({ name, quantity: 1 }));
+    
+    // Fetch product details from database to get prices
+    const productsWithDetails = [];
+    for (const productName of productNames) {
+      try {
+        const product = await Product.findOne({ name: productName });
+        if (product) {
+          productsWithDetails.push({
+            name: product.name,
+            quantity: 1, // TEMP: Assume quantity 1 for each product
+            price: product.price
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching product details:', productName, err);
+      }
+    }
 
-    if (!userId || !products.length) {
+    if (!userId || !productsWithDetails.length) {
       console.error('Missing userId or productNames in Stripe session metadata', session.metadata);
       return res.status(400).json({ success: false, message: 'Missing userId or productNames in metadata' });
     }
@@ -132,7 +147,7 @@ export const stripeWebhook = async (req, res) => {
     try {
       const transaction = new Transaction({
         userId,
-        products,
+        products: productsWithDetails,
         totalAmount,
         paymentStatus,
         transactionId,
@@ -152,7 +167,7 @@ export const stripeWebhook = async (req, res) => {
       }
 
       // 2. Update the stock of the products
-      for (const prod of products) {
+      for (const prod of productsWithDetails) {
         try {
           await Product.findOneAndUpdate(
             { name: prod.name },
@@ -168,7 +183,7 @@ export const stripeWebhook = async (req, res) => {
       try {
         const order = new Order({
           userId,
-          products,
+          products: productsWithDetails,
           totalAmount,
           paymentStatus,
           transactionId,
@@ -178,6 +193,7 @@ export const stripeWebhook = async (req, res) => {
       } catch (err) {
         console.error('Error creating order:', err);
       }
+      
       // send email to user
       const user = await User.findById(userId);
       const transporter = nodemailer.createTransport({
@@ -310,11 +326,11 @@ export const stripeWebhook = async (req, res) => {
             
             <div class="order-summary">
                 <h3>📦 Order Summary</h3>
-                ${products.map(product => `
+                ${productsWithDetails.map(product => `
                     <div class="product-item">
                         <span class="product-name">${product.name}</span>
                         <span class="product-details">
-                            Qty: ${product.quantity} | Price: $${(product.price || 0).toFixed(2)}
+                            Qty: ${product.quantity} | Price: $${product.price.toFixed(2)}
                         </span>
                     </div>
                 `).join('')}
@@ -346,7 +362,7 @@ export const stripeWebhook = async (req, res) => {
         to: user.email,
         subject: 'Order Confirmation - Wahid Foods',
         html: htmlContent,
-        text: `Dear ${user.name || user.username},\n\nThank you for your purchase! Your order has been successfully placed.\n\nOrder Details:\n${products.map(product => `- ${product.name}: Qty ${product.quantity}`).join('\n')}\n\nTotal Amount: $${totalAmount.toFixed(2)}\nTransaction ID: ${transactionId}\n\nThank you for choosing Wahid Foods SMC Team!`
+        text: `Dear ${user.name || user.username},\n\nThank you for your purchase! Your order has been successfully placed.\n\nOrder Details:\n${productsWithDetails.map(product => `- ${product.name}: Qty ${product.quantity} | Price: $${product.price.toFixed(2)}`).join('\n')}\n\nTotal Amount: $${totalAmount.toFixed(2)}\nTransaction ID: ${transactionId}\n\nThank you for choosing Wahid Foods SMC Team!`
       };
 
       transporter.sendMail(mailOptions, (err, info) => {
