@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js'; // import your new Order model
+import {User} from '../models/User.js'; // import your new User model
+import nodemailer from 'nodemailer'; // import nodemailer
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
@@ -176,6 +178,185 @@ export const stripeWebhook = async (req, res) => {
       } catch (err) {
         console.error('Error creating order:', err);
       }
+      // send email to user
+      const user = await User.findById(userId);
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: 'hacktech877@gmail.com',
+          pass: 'ggsg dipv skrz xjct'
+        }
+      });
+
+      // Create HTML email content
+      const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        .order-summary {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .order-summary h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        .product-name {
+            font-weight: 500;
+            color: #495057;
+        }
+        .product-details {
+            text-align: right;
+            color: #6c757d;
+        }
+        .total-section {
+            background-color: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .transaction-id {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        .transaction-id strong {
+            color: #667eea;
+        }
+        .footer {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .company-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>🎉 Order Confirmation</h1>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Dear <strong>${user.name || user.username}</strong>,
+            </div>
+            
+            <p>Thank you for your purchase! Your order has been successfully placed and is being processed.</p>
+            
+            <div class="order-summary">
+                <h3>📦 Order Summary</h3>
+                ${products.map(product => `
+                    <div class="product-item">
+                        <span class="product-name">${product.name}</span>
+                        <span class="product-details">
+                            Qty: ${product.quantity} | Price: $${(product.price || 0).toFixed(2)}
+                        </span>
+                    </div>
+                `).join('')}
+                
+                <div class="total-section">
+                    <strong>Total Amount: $${totalAmount.toFixed(2)}</strong>
+                </div>
+            </div>
+            
+            <div class="transaction-id">
+                <strong>Transaction ID:</strong> ${transactionId}
+            </div>
+            
+            <p>We will notify you once your order is ready for pickup or delivery. If you have any questions, please don't hesitate to contact us.</p>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing</p>
+            <p class="company-name">Wahid Foods SMC Team</p>
+            <p>🍽️ Delicious food, delivered with care</p>
+        </div>
+    </div>
+</body>
+</html>
+`;
+
+      const mailOptions = {
+        from: 'hacktech877@gmail.com',
+        to: user.email,
+        subject: 'Order Confirmation - Wahid Foods',
+        html: htmlContent,
+        text: `Dear ${user.name || user.username},\n\nThank you for your purchase! Your order has been successfully placed.\n\nOrder Details:\n${products.map(product => `- ${product.name}: Qty ${product.quantity}`).join('\n')}\n\nTotal Amount: $${totalAmount.toFixed(2)}\nTransaction ID: ${transactionId}\n\nThank you for choosing Wahid Foods SMC Team!`
+      };
+
+      transporter.sendMail(mailOptions, (err, info) => {
+        if (err) {
+          console.error('Error sending email:', err);
+        } else {
+          console.log('Email sent:', info.response);
+        }
+      });
+      
     } catch (err) {
       if (err.code === 11000) {
         console.warn('Duplicate transactionId, already saved:', transactionId);

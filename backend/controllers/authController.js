@@ -147,7 +147,7 @@ export const forgotPassword = async (req, res) => {
       service: 'gmail',
       auth: {
         user: 'hacktech877@gmail.com',
-        pass: 'Anonymous.2207' // Use Gmail App Password
+        pass: 'ggsg dipv skrz xjct' // Use Gmail App Password
       }
     });
 
