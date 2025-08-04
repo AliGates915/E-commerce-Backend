@@ -140,7 +140,7 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
     // Create reset URL
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/reset-password/${resetToken}`;
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://www.wahidfoodssmc.com'}/reset-password/${resetToken}`;
 
     // Create transporter
     const transporter = nodemailer.createTransport({
