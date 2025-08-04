@@ -195,17 +195,27 @@ export const stripeWebhook = async (req, res) => {
       }
       
       // send email to user
-      const user = await User.findById(userId);
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'hacktech877@gmail.com',
-          pass: 'ggsg dipv skrz xjct'
-        }
-      });
+      try {
+        const user = await User.findById(userId);
+        
+        if (!user) {
+          console.error('User not found for ID:', userId);
+          // Continue with transaction processing even if user not found
+        } else {
+          const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: 'hacktech877@gmail.com',
+              pass: 'ggsg dipv skrz xjct'
+            }
+          });
 
-      // Create HTML email content
-      const htmlContent = `
+          // Create HTML email content with null checks
+          const userName = user?.name || user?.username || 'Valued Customer';
+          const userEmail = user?.email;
+
+          if (userEmail) {
+            const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -319,7 +329,7 @@ export const stripeWebhook = async (req, res) => {
         
         <div class="content">
             <div class="greeting">
-                Dear <strong>${user.name || user.username}</strong>,
+                Dear <strong>${userName}</strong>,
             </div>
             
             <p>Thank you for your purchase! Your order has been successfully placed and is being processed.</p>
@@ -357,21 +367,29 @@ export const stripeWebhook = async (req, res) => {
 </html>
 `;
 
-      const mailOptions = {
-        from: 'hacktech877@gmail.com',
-        to: user.email,
-        subject: 'Order Confirmation - Wahid Foods',
-        html: htmlContent,
-        text: `Dear ${user.name || user.username},\n\nThank you for your purchase! Your order has been successfully placed.\n\nOrder Details:\n${productsWithDetails.map(product => `- ${product.name}: Qty ${product.quantity} | Price: $${product.price.toFixed(2)}`).join('\n')}\n\nTotal Amount: $${totalAmount.toFixed(2)}\nTransaction ID: ${transactionId}\n\nThank you for choosing Wahid Foods SMC Team!`
-      };
+            const mailOptions = {
+              from: 'hacktech877@gmail.com',
+              to: userEmail,
+              subject: 'Order Confirmation - Wahid Foods',
+              html: htmlContent,
+              text: `Dear ${userName},\n\nThank you for your purchase! Your order has been successfully placed.\n\nOrder Details:\n${productsWithDetails.map(product => `- ${product.name}: Qty ${product.quantity} | Price: $${product.price.toFixed(2)}`).join('\n')}\n\nTotal Amount: $${totalAmount.toFixed(2)}\nTransaction ID: ${transactionId}\n\nThank you for choosing Wahid Foods SMC Team!`
+            };
 
-      transporter.sendMail(mailOptions, (err, info) => {
-        if (err) {
-          console.error('Error sending email:', err);
-        } else {
-          console.log('Email sent:', info.response);
+            transporter.sendMail(mailOptions, (err, info) => {
+              if (err) {
+                console.error('Error sending email:', err);
+              } else {
+                console.log('Email sent:', info.response);
+              }
+            });
+          } else {
+            console.error('User email not found for ID:', userId);
+          }
         }
-      });
+      } catch (emailError) {
+        console.error('Error in email sending process:', emailError);
+        // Don't fail the entire transaction if email fails
+      }
       
     } catch (err) {
       if (err.code === 11000) {
