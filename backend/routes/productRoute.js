@@ -18,21 +18,24 @@ import {
 const router = express.Router();
 const upload = multer({ storage });
 
-// CRUD routes
+// CRUD routes - Specific routes first
 router.get('/', getAllProducts);
-router.post('/add', upload.array('images'), addProduct);
+router.get('/search', searchProducts);
 router.get('/features', getFeatureProducts);
 router.get('/enabled', getProductsWithEnabledCategories);
 router.get('/discounts', getDiscountProducts);
-router.get('/:categoryName', getProductsByCategoryName);
 
-// ... other routes
-
-router.delete('/:productId/images/:publicId', removeProductImage);
-router.get('/search', searchProducts);
+// Product CRUD operations
+router.post('/add', upload.array('images'), addProduct);
 router.get('/:id', getProductById);
 router.put('/:id', upload.array('images'), updateProduct);
 router.delete('/:id', deleteProduct);
+
+// Image operations
+router.delete('/:productId/images/:publicId', removeProductImage);
+
+// Category-based routes - Keep this last to avoid conflicts
+router.get('/category/:categoryName', getProductsByCategoryName);
 
 export default router;
 
