@@ -21,10 +21,12 @@ export const getEnabledPromotionsWithProducts = async (req, res) => {
     // Get all enabled promotions
     const promotions = await Promotion.find({ isEnable: true });
 
-    // For each promotion, get products associated with it
+    // For each promotion, get products sorted by createdAt (newest first)
     const promotionSections = await Promise.all(
       promotions.map(async (promotion) => {
-        const products = await Product.find({ promotion: promotion._id });
+        const products = await Product.find({ promotion: promotion._id })
+          .sort({ createdAt: -1 }); // DESCENDING sort
+
         return {
           _id: promotion._id,
           name: promotion.name,
@@ -38,6 +40,7 @@ export const getEnabledPromotionsWithProducts = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // READ All Promotions
 export const getPromotions = async (req, res) => {
