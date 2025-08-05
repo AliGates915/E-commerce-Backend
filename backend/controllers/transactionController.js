@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
 import Order from '../models/Order.js'; // import your new Order model
-import {User} from '../models/User.js'; // import your new User model
+import { User } from '../models/User.js'; // import your new User model
 import nodemailer from 'nodemailer'; // import nodemailer
 dotenv.config();
 
@@ -95,15 +95,13 @@ export const createCheckoutSession = async (req, res) => {
   }
 };
 
-// Stripe Webhook Handler
-export const stripeWebhook = async (req, res) => {
 
-  console.log("stripeWebhook");
-  
+// UPDATED: Stripe Webhook Handler 
+export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const STRIPE_WEBHOOK_SECRET = 'whsec_WozK5EOPPrVlQOJ82fTf675S6pQfa5Z8';
-  console.log('Stripe webhook endpoint called');
-    let event;
+  let event;
+
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
   } catch (err) {
@@ -114,30 +112,43 @@ export const stripeWebhook = async (req, res) => {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const userId = session.metadata?.userId;
-    const productNames = session.metadata?.productNames
-      ? session.metadata.productNames.split(',').filter(Boolean)
-      : [];
-    
-    // Fetch product details from database to get prices
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Missing userId in metadata' });
+    }
+
+    // ✅ Get the full line items to get accurate quantity and price
+    let lineItems;
+    try {
+      const lineItemsRes = await stripe.checkout.sessions.listLineItems(session.id, {
+        limit: 100,
+      });
+      lineItems = lineItemsRes.data;
+    } catch (err) {
+      console.error('Error fetching line items:', err);
+      return res.status(500).json({ success: false, message: 'Failed to fetch line items' });
+    }
+
+    // ✅ Build products array with correct quantity
     const productsWithDetails = [];
-    for (const productName of productNames) {
-      try {
-        const product = await Product.findOne({ name: productName });
-        if (product) {
-          productsWithDetails.push({
-            name: product.name,
-            quantity: 1, // TEMP: Assume quantity 1 for each product
-            price: product.price
-          });
-        }
-      } catch (err) {
-        console.error('Error fetching product details:', productName, err);
+
+    for (const item of lineItems) {
+      const productName = item.description;
+      const quantity = item.quantity || 1;
+      const unitAmount = item.price.unit_amount / 100;
+
+      const product = await Product.findOne({ name: productName });
+      if (product) {
+        productsWithDetails.push({
+          name: product.name,
+          quantity,
+          price: unitAmount,
+        });
       }
     }
 
-    if (!userId || !productsWithDetails.length) {
-      console.error('Missing userId or productNames in Stripe session metadata', session.metadata);
-      return res.status(400).json({ success: false, message: 'Missing userId or productNames in metadata' });
+    if (!productsWithDetails.length) {
+      return res.status(400).json({ success: false, message: 'No valid products found in line items' });
     }
 
     const totalAmount = session.amount_total / 100;
@@ -145,264 +156,95 @@ export const stripeWebhook = async (req, res) => {
     const paymentStatus = session.payment_status === 'paid' ? 'completed' : session.payment_status;
 
     try {
-      const transaction = new Transaction({
-        userId,
-        products: productsWithDetails,
-        totalAmount,
-        paymentStatus,
-        transactionId,
-      });
-      await transaction.save();
-      console.log('Transaction saved successfully!');
+      await new Transaction({ userId, products: productsWithDetails, totalAmount, paymentStatus, transactionId }).save();
+      await Cart.findOneAndUpdate({ userId }, { $set: { items: [] } });
 
-      // 1. Clear the user's cart
-      try {
-        await Cart.findOneAndUpdate(
-          { userId },
-          { $set: { items: [] } }
-        );
-        console.log('Cart cleared for user:', userId);
-      } catch (err) {
-        console.error('Error clearing cart:', err);
-      }
-
-      // 2. Update the stock of the products
       for (const prod of productsWithDetails) {
-        try {
-          await Product.findOneAndUpdate(
-            { name: prod.name },
-            { $inc: { stock: -prod.quantity } }
-          );
-        } catch (err) {
-          console.error('Error updating stock for product:', prod.name, err);
-        }
+        await Product.findOneAndUpdate({ name: prod.name }, { $inc: { stock: -prod.quantity } });
       }
-      console.log('Product stock updated.');
 
-      // 3. Create a new order
-      try {
-        const order = new Order({
-          userId,
-          products: productsWithDetails,
-          totalAmount,
-          paymentStatus,
-          transactionId,
-        });
-        await order.save();
-        console.log('Order created successfully!');
-      } catch (err) {
-        console.error('Error creating order:', err);
-      }
-      
-      // send email to user
-      try {
-        const user = await User.findById(userId);
-        
-        if (!user) {
-          console.error('User not found for ID:', userId);
-          // Continue with transaction processing even if user not found
-        } else {
-          const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-              user: 'hacktech877@gmail.com',
-              pass: 'ggsg dipv skrz xjct'
-            }
-          });
+      await new Order({ userId, products: productsWithDetails, totalAmount, paymentStatus, transactionId }).save();
 
-          // Create HTML email content with null checks
-          const userName = user?.name || user?.username || 'Valued Customer';
-          const userEmail = user?.email;
+      const user = await User.findById(userId);
+      if (!user) return res.status(200).json({ received: true });
 
-          if (userEmail) {
-            const htmlContent = `
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: 'hacktech877@gmail.com',
+          pass: 'ggsg dipv skrz xjct',
+        },
+      });
+
+      const userName = user?.name || user?.username || 'Valued Customer';
+      const userEmail = user?.email;
+
+      if (userEmail) {
+        const htmlContent = `
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmation</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #f4f4f4;
-        }
-        .email-container {
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            margin: 20px;
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 30px;
-        }
-        .greeting {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #2c3e50;
-        }
-        .order-summary {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .order-summary h3 {
-            color: #2c3e50;
-            margin-top: 0;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 10px;
-        }
-        .product-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .product-item:last-child {
-            border-bottom: none;
-        }
-        .product-name {
-            font-weight: 500;
-            color: #495057;
-        }
-        .product-details {
-            text-align: right;
-            color: #6c757d;
-        }
-        .total-section {
-            background-color: #667eea;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .transaction-id {
-            background-color: #e9ecef;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            text-align: center;
-            border-left: 4px solid #667eea;
-        }
-        .transaction-id strong {
-            color: #667eea;
-        }
-        .footer {
-            background-color: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        .company-name {
-            font-weight: 600;
-            color: #667eea;
-        }
-    </style>
-</head>
+<html>
+<head><meta charset="UTF-8"><title>Order Confirmation</title></head>
 <body>
-    <div class="email-container">
-        <div class="header">
-            <h1>🎉 Order Confirmation</h1>
-        </div>
-        
-        <div class="content">
-            <div class="greeting">
-                Dear <strong>${userName}</strong>,
-            </div>
-            
-            <p>Thank you for your purchase! Your order has been successfully placed and is being processed.</p>
-            
-            <div class="order-summary">
-                <h3>📦 Order Summary</h3>
-                ${productsWithDetails.map(product => `
-                    <div class="product-item">
-                        <span class="product-name">${product.name}</span>
-                        <span class="product-details">
-                            Qty: ${product.quantity} | Price: $${product.price.toFixed(2)}
-                        </span>
-                    </div>
-                `).join('')}
-                
-                <div class="total-section">
-                    <strong>Total Amount: $${totalAmount.toFixed(2)}</strong>
-                </div>
-            </div>
-            
-            <div class="transaction-id">
-                <strong>Transaction ID:</strong> ${transactionId}
-            </div>
-            
-            <p>We will notify you once your order is ready for pickup or delivery. If you have any questions, please don't hesitate to contact us.</p>
-        </div>
-        
-        <div class="footer">
-            <p>Thank you for choosing</p>
-            <p class="company-name">Wahid Foods SMC Team</p>
-            <p>🍽️ Delicious food, delivered with care</p>
-        </div>
-    </div>
+  <div style="max-width:600px;margin:auto;padding:20px;font-family:sans-serif;">
+    <h2 style="background:#667eea;color:#fff;padding:15px;text-align:center;">🎉 Order Confirmation</h2>
+    <p>Hello <strong>${userName}</strong>,</p>
+    <p>Thank you for your purchase! Here are your order details:</p>
+
+    <table width="100%" border="1" cellspacing="0" cellpadding="10" style="border-collapse: collapse;">
+      <thead style="background: #eee;">
+        <tr>
+          <th align="left">Product</th>
+          <th align="center">Qty</th>
+          <th align="right">Price</th>
+          <th align="right">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${productsWithDetails.map(p => `
+          <tr>
+            <td>${p.name}</td>
+            <td align="center">${p.quantity}</td>
+            <td align="right">$${p.price.toFixed(2)}</td>
+            <td align="right">$${(p.price * p.quantity).toFixed(2)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3" align="right"><strong>Total:</strong></td>
+          <td align="right"><strong>$${totalAmount.toFixed(2)}</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <p>If you have any questions, feel free to contact us.</p>
+    <p>— Wahid Foods SMC Team</p>
+  </div>
 </body>
-</html>
-`;
+</html>`;
 
-            const mailOptions = {
-              from: 'hacktech877@gmail.com',
-              to: userEmail,
-              subject: 'Order Confirmation - Wahid Foods',
-              html: htmlContent,
-              text: `Dear ${userName},\n\nThank you for your purchase! Your order has been successfully placed.\n\nOrder Details:\n${productsWithDetails.map(product => `- ${product.name}: Qty ${product.quantity} | Price: $${product.price.toFixed(2)}`).join('\n')}\n\nTotal Amount: $${totalAmount.toFixed(2)}\nTransaction ID: ${transactionId}\n\nThank you for choosing Wahid Foods SMC Team!`
-            };
-
-            transporter.sendMail(mailOptions, (err, info) => {
-              if (err) {
-                console.error('Error sending email:', err);
-              } else {
-                console.log('Email sent:', info.response);
-              }
-            });
-          } else {
-            console.error('User email not found for ID:', userId);
-          }
-        }
-      } catch (emailError) {
-        console.error('Error in email sending process:', emailError);
-        // Don't fail the entire transaction if email fails
+        await transporter.sendMail({
+          from: 'hacktech877@gmail.com',
+          to: userEmail,
+          subject: 'Order Confirmation - Wahid Foods',
+          html: htmlContent,
+        });
       }
-      
+
+      res.status(200).json({ received: true });
     } catch (err) {
       if (err.code === 11000) {
-        console.warn('Duplicate transactionId, already saved:', transactionId);
+        console.warn('Duplicate transactionId:', transactionId);
         return res.status(200).json({ received: true, duplicate: true });
       }
-      console.error('Error saving transaction:', err);
+      console.error('Transaction saving error:', err);
       return res.status(500).json({ success: false, message: err.message });
     }
+  } else {
+    res.status(200).json({ received: true });
   }
-
-  res.status(200).json({ received: true });
 };
+  
 
 // Get transaction history for a specific user with completed payment status
 export const getUserTransactionHistory = async (req, res) => {
@@ -410,9 +252,9 @@ export const getUserTransactionHistory = async (req, res) => {
     const { userId } = req.params;
 
     if (!userId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User ID is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
       });
     }
 
@@ -421,15 +263,15 @@ export const getUserTransactionHistory = async (req, res) => {
       paymentStatus: 'completed'
     }).sort({ createdAt: -1 }); // Sort by newest first
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       data: transactions,
       count: transactions.length
     });
   } catch (err) {
-    res.status(500).json({ 
-      success: false, 
-      message: err.message 
+    res.status(500).json({
+      success: false,
+      message: err.message
     });
   }
 };
