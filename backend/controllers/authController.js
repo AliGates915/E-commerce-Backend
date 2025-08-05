@@ -40,6 +40,10 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "User not found ❌" });
+       // Check for suspended status
+       if (user.status === "suspend") {
+        return res.status(403).json({ message: "Your account is suspended ❌" });
+      }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
