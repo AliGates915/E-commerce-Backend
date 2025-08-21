@@ -336,27 +336,20 @@ export const safepayCheckoutSession = async (req, res) => {
 };
 
 // Safepay webhook trigger
-export const safepayWebhook = async (req, res) => {
+const safepayWebhook = (req, res) => {
   try {
-    // Safepay sends raw body for signature validation
-    const rawBody = req.body.toString("utf8");
+    // req.rawBody is a Buffer
+    const rawString = req.rawBody.toString("utf8");
+    const payload = JSON.parse(rawString);
 
-    // Parse JSON
-    const event = JSON.parse(rawBody);
+    console.log("✅ Safepay Webhook Payload:", payload);
 
-    console.log("Safepay Webhook Event:", event);
+    // verify signature here...
 
-    if (event.type === "payment.succeeded") {
-      const { amount, currency, metadata, tracker } = event.data;
-      console.log("✅ Payment succeeded:", amount, currency, metadata, tracker);
-
-      // 👉 save transaction, clear cart, etc.
-    }
-
-    res.status(200).send("ok");
+    res.status(200).send("Webhook received");
   } catch (err) {
-    console.error("Webhook Error:", err.message);
-    res.status(400).send("Invalid webhook");
+    console.error("❌ Webhook Error:", err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
   }
 };
 
