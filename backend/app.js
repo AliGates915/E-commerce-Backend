@@ -34,35 +34,20 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Safepay webhook
-app.post(
-  "/api/safepay-webhook",
-  express.raw({ type: "application/json" }),
-  (req, res, next) => {
-    req.rawBody = req.body; // raw buffer
-    next();
-  },
-  safepayWebhook
-);
-
-// Stripe webhook
-app.post(
-  "/safepay-webhook",
-  express.raw({ type: "*/*" }),  // temp: accept all content-types
-  (req, res, next) => {
-    console.log("📩 Headers:", req.headers);
-    console.log("📩 Raw Buffer:", req.body);
-    req.rawBody = req.body;
-    next();
-  },
-  safepayWebhook
-);
+// Stripe webhook needs raw body
+app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
 
 
-// ✅ After webhooks, apply JSON parser for all other APIs
+// All other routes use JSON
 app.use(express.json());
 
 
+// Safepay webhook also needs raw body
+app.post(
+  "/safepay-webhook",
+  express.raw({ type: "application/json" }),
+  safepayWebhook 
+);
 
 
 
