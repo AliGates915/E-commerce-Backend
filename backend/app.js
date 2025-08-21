@@ -9,6 +9,8 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import promotionRoutes from './routes/promotionRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import { safepayWebhook } from "./controllers/transactionController.js";
+
 
 dotenv.config();
 
@@ -34,6 +36,25 @@ app.use(cors(corsOptions));
 
 // Stripe webhook needs raw body
 app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
+
+// Safepay webhook also needs raw body
+// app.post(
+//   "/api/transactions/safepay-webhook",
+//   express.raw({ type: "application/json" }),
+//   safepayWebhook
+// );
+
+app.post(
+  "/api/transactions/safepay-webhook",
+  express.json(),
+  (req, res) => {
+    console.log("Webhook received:", req.body);
+
+    // ⚠️ Skip signature validation ONLY for local testing!
+    res.status(200).send("ok");
+  }
+);
+
 
 // All other routes use JSON
 app.use(express.json());

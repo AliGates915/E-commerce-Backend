@@ -4,7 +4,9 @@ import {
   getTransactions, 
   createCheckoutSession, 
   stripeWebhook,
-  getUserTransactionHistory 
+  getUserTransactionHistory,
+  safepayCheckoutSession,
+  safepayWebhook
 } from '../controllers/transactionController.js';
 
 const router = express.Router();
@@ -12,13 +14,15 @@ const router = express.Router();
 router.post('/create', createTransaction);
 router.get('/', getTransactions);
 
-// Get transaction history for a specific user
+// Get transaction history
 router.get('/transaction-history/:userId', getUserTransactionHistory);
 
-// Stripe checkout session
+// Stripe routes
 router.post('/create-checkout-session', createCheckoutSession);
+// router.post('/webhook', stripeWebhook);
 
-// Stripe webhook (raw body required in app.js)
-router.post('/webhook', stripeWebhook);
+// ✅ Safepay routes
+router.post('/safepay-checkout-session', safepayCheckoutSession);
+// router.post('/safepay-webhook', safepayWebhook);
 
 export default router;
