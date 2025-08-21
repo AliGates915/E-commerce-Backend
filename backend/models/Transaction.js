@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const transactionSchema = new mongoose.Schema({
   userId: {
     type: String, // Changed from ObjectId to String
-    required: true,
+    required: false,
   },
   products: [
     {

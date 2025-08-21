@@ -343,9 +343,10 @@ export const safepayWebhook = async (req, res) => {
       return res.status(400).send("Missing raw body");
     }
 
+    // Parse payload
     let payload;
     try {
-      payload = JSON.parse(req.rawBody); // ab req.rawBody already string
+      payload = JSON.parse(req.rawBody);
     } catch (jsonErr) {
       console.error("❌ [Safepay] JSON parse error:", jsonErr.message);
       return res.status(400).send("Invalid JSON");
@@ -353,9 +354,10 @@ export const safepayWebhook = async (req, res) => {
 
     console.log("✅ [Safepay] Parsed Payload:", payload);
 
-    const data = payload?.data;
+    // Extract data
+    const data = payload?.data || {};
     const orderId = data?.metadata?.order_id;
-    const amount = data?.amount / 100;
+    const amount = data?.amount / 100; // convert paisa to full currency
     const currency = data?.currency;
     const transactionId = payload?.token;
     const paymentStatus =
@@ -369,8 +371,13 @@ export const safepayWebhook = async (req, res) => {
       paymentStatus,
     });
 
-    // Save transaction if orderId exists
-    if (orderId) {
+    if (!orderId) {
+      console.warn("⚠️ [Safepay] No orderId in metadata, skipping save");
+      return res.status(200).json({ received: true });
+    }
+
+    // Save transaction
+    try {
       await new Transaction({
         orderId,
         totalAmount: amount,
@@ -380,12 +387,30 @@ export const safepayWebhook = async (req, res) => {
         provider: "safepay",
       }).save();
 
-      await Order.findOneAndUpdate(
-        { orderId },
-        { $set: { paymentStatus, transactionId } }
-      );
+      console.log("💾 [Safepay] Transaction saved:", transactionId);
+    } catch (err) {
+      if (err.code === 11000) {
+        console.warn("⚠️ [Safepay] Duplicate transactionId:", transactionId);
+      } else {
+        console.error("❌ [Safepay] Transaction save error:", err);
+        return res.status(500).json({ success: false, message: err.message });
+      }
+    }
 
-      console.log("💾 [Safepay] Transaction saved for order:", orderId);
+    // Update order payment status if exists
+    try {
+      const updatedOrder = await Order.findOneAndUpdate(
+        { orderId },
+        { $set: { paymentStatus, transactionId } },
+        { new: true }
+      );
+      if (updatedOrder) {
+        console.log("✅ [Safepay] Order updated:", orderId);
+      } else {
+        console.warn("⚠️ [Safepay] Order not found for orderId:", orderId);
+      }
+    } catch (err) {
+      console.error("❌ [Safepay] Order update error:", err);
     }
 
     res.status(200).json({ received: true });
@@ -394,6 +419,7 @@ export const safepayWebhook = async (req, res) => {
     res.status(400).send(`Webhook Error: ${err.message}`);
   }
 };
+
 
 
 

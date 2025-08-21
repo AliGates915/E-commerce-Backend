@@ -43,30 +43,16 @@ app.use(cors(corsOptions));
 
 
 // Safepay webhook first
-// Safepay webhook (raw body needed)
 app.post(
   "/api/transactions/safepay-webhook",
-  express.raw({ type: "application/json" }), // raw buffer
+  express.raw({ type: "application/json" }),
   (req, res, next) => {
-    console.log("📩 [Safepay] Webhook hit");
-    console.log("📩 [Safepay] Headers:", req.headers);
-    console.log("📩 [Safepay] Raw Buffer:", req.body);
-
-    try {
-      // Convert buffer to string
-      const rawString = req.body.toString("utf8");
-      console.log("📩 [Safepay] Raw String:", rawString);
-
-      // Attach string to req for controller
-      req.rawBody = rawString;
-      next();
-    } catch (err) {
-      console.error("❌ [Safepay] Error parsing raw body:", err.message);
-      res.status(400).send("Invalid raw body");
-    }
+    req.rawBody = req.body.toString("utf8");
+    next();
   },
   safepayWebhook
 );
+
 
 
 // All other APIs
