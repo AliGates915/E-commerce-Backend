@@ -34,35 +34,46 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Stripe webhook needs raw body
-app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
+// // Stripe webhook needs raw body
+// app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
 
 
-// All other routes use JSON
-app.use(express.json());
+// // All other routes use JSON
+// app.use(express.json());
 
 
-// Safepay webhook also needs raw body
+// Safepay webhook first
+// Safepay webhook (raw body needed)
 app.post(
   "/safepay-webhook",
-  express.raw({ type:"*/*" }),
+  express.raw({ type: "application/json" }), // raw buffer
   (req, res, next) => {
     console.log("📩 [Safepay] Webhook hit");
     console.log("📩 [Safepay] Headers:", req.headers);
     console.log("📩 [Safepay] Raw Buffer:", req.body);
 
     try {
+      // Convert buffer to string
       const rawString = req.body.toString("utf8");
       console.log("📩 [Safepay] Raw String:", rawString);
-      req.rawBody = req.body;
-    } catch (err) {
-      console.error("❌ [Safepay] Error converting raw body:", err.message);
-    }
 
-    next();
+      // Attach string to req for controller
+      req.rawBody = rawString;
+      next();
+    } catch (err) {
+      console.error("❌ [Safepay] Error parsing raw body:", err.message);
+      res.status(400).send("Invalid raw body");
+    }
   },
   safepayWebhook
 );
+
+// Stripe webhook
+app.post("/api/transactions/webhook", express.raw({ type: "application/json" }), stripeWebhook);
+
+// All other APIs
+app.use(express.json());
+
 
 
 

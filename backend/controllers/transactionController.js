@@ -315,8 +315,6 @@ export const safepayCheckoutSession = async (req, res) => {
       currency: "PKR",
       amount: totalAmount,
     });
-
-    // console.log("redirectUrl", success_url);
     
     // create checkout url
     const checkoutUrl = safepay.checkout.create({
@@ -345,12 +343,9 @@ export const safepayWebhook = async (req, res) => {
       return res.status(400).send("Missing raw body");
     }
 
-    const rawString = req.rawBody.toString("utf8");
-    console.log("🔍 [Safepay] Raw Body String:", rawString);
-
     let payload;
     try {
-      payload = JSON.parse(rawString);
+      payload = JSON.parse(req.rawBody); // ab req.rawBody already string
     } catch (jsonErr) {
       console.error("❌ [Safepay] JSON parse error:", jsonErr.message);
       return res.status(400).send("Invalid JSON");
@@ -358,7 +353,6 @@ export const safepayWebhook = async (req, res) => {
 
     console.log("✅ [Safepay] Parsed Payload:", payload);
 
-    // Extract fields
     const data = payload?.data;
     const orderId = data?.metadata?.order_id;
     const amount = data?.amount / 100;
@@ -375,12 +369,8 @@ export const safepayWebhook = async (req, res) => {
       paymentStatus,
     });
 
-    if (!orderId) {
-      console.warn("⚠️ [Safepay] No orderId found in metadata");
-      return res.status(200).json({ received: true });
-    }
-
-    try {
+    // Save transaction if orderId exists
+    if (orderId) {
       await new Transaction({
         orderId,
         totalAmount: amount,
@@ -396,15 +386,9 @@ export const safepayWebhook = async (req, res) => {
       );
 
       console.log("💾 [Safepay] Transaction saved for order:", orderId);
-      res.status(200).json({ received: true });
-    } catch (err) {
-      if (err.code === 11000) {
-        console.warn("⚠️ [Safepay] Duplicate transactionId:", transactionId);
-        return res.status(200).json({ received: true, duplicate: true });
-      }
-      console.error("❌ [Safepay] DB save error:", err);
-      return res.status(500).json({ success: false, message: err.message });
     }
+
+    res.status(200).json({ received: true });
   } catch (err) {
     console.error("❌ [Safepay] Webhook Handler Error:", err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);
