@@ -338,12 +338,12 @@ export const safepayCheckoutSession = async (req, res) => {
 // Safepay webhook trigger
 export const safepayWebhook = async (req, res) => {
   try {
-    const signature = req.headers["sfp-signature"];
-    const payload = req.body.toString("utf8"); // raw body
+    const signature = req.headers["x-sfpy-signature"]; // ✅ correct header
+    const payload = req.body.toString("utf8"); // raw body string
 
     // ✅ Verify Safepay webhook signature
     const expected = crypto
-      .createHmac("sha256", '2e569f82877c3507cbaa35dd516757d8e7276168fe81fb390acd83c065c9bada')
+      .createHmac("sha512", '2e569f82877c3507cbaa35dd516757d8e7276168fe81fb390acd83c065c9bada')
       .update(payload)
       .digest("hex");
 
@@ -351,6 +351,10 @@ export const safepayWebhook = async (req, res) => {
       console.error("Invalid Safepay webhook signature");
       return res.status(400).send("Invalid signature");
     }
+    const event1 = JSON.parse(payload); // ✅ must parse after verifying
+    console.log("Webhook Event:", event1);
+
+
 
     const event = req.body;
     console.log("Event", event);
