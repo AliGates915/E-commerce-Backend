@@ -10,8 +10,6 @@ import promotionRoutes from './routes/promotionRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import { safepayWebhook } from "./controllers/transactionController.js";
-import crypto from "crypto";
-import bodyParser from "body-parser";
 
 
 dotenv.config();
@@ -36,32 +34,33 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Stripe webhook needs raw body
-app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
-
-
-// All other routes use JSON
-app.use(express.json());
-
-
-// ✅ Apply express.json() to all routes except webhook
-// Middleware to capture raw body
+// Safepay webhook
 app.post(
   "/api/safepay-webhook",
   express.raw({ type: "application/json" }),
   (req, res, next) => {
-    try {
-      req.rawBody = req.body; // keep raw buffer
-      next();
-    } catch (err) {
-      console.error("Webhook raw body parse error:", err.message);
-      res.status(400).send("Invalid payload");
-    }
+    req.rawBody = req.body; // raw buffer
+    next();
   },
   safepayWebhook
 );
 
+// Stripe webhook
+app.post(
+  "/api/transactions/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res, next) => {
+    req.rawBody = req.body; // raw buffer
+    next();
+  },
+  (req, res) => {
+    // your stripe controller
+    res.send("Stripe webhook received ✅");
+  }
+);
 
+// ✅ After webhooks, apply JSON parser for all other APIs
+app.use(express.json());
 
 
 
