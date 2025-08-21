@@ -10,6 +10,7 @@ import promotionRoutes from './routes/promotionRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import { safepayWebhook } from "./controllers/transactionController.js";
+import crypto from "crypto";
 
 
 dotenv.config();
@@ -42,12 +43,50 @@ app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 
 
-// Safepay webhook also needs raw body
-app.post(
-  "/safepay-webhook",
-  express.raw({ type: "application/json" }),
-  safepayWebhook
-);
+// ✅ Apply express.json() to all routes except webhook
+// Middleware to capture raw body
+app.use((req, res, next) => {
+  let data = [];
+  req.on("data", chunk => data.push(chunk));
+  req.on("end", () => {
+    req.rawBody = Buffer.concat(data);
+    next();
+  });
+});
+
+app.use(express.json()); // still parse JSON normally
+
+app.post("/safepay-webhook", (req, res) => {
+  try {
+    console.log("✅ Parsed JSON:", req.body);
+    console.log("📩 Raw body (string):", req.rawBody.toString());
+
+    const signature = req.headers["x-sfpy-signature"];
+    const secret =
+      "2e569f82877c3507cbaa35dd516757d8e7276168fe81fb390acd83c065c9bada";
+
+    const expectedSig = crypto
+      .createHmac("sha512", secret)
+      .update(req.rawBody)
+      .digest("hex");
+
+    if (signature !== expectedSig) {
+      console.error("❌ Invalid signature");
+      return res.status(400).send("Invalid signature");
+    }
+
+    console.log("💰 Payment event verified:", req.body);
+    res.status(200).send("Webhook received ✅");
+  } catch (err) {
+    console.error("❌ Webhook Error:", err);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+
+
+
+
+
 
 
 // Connect DB
