@@ -47,17 +47,17 @@ app.post(
 
 // Stripe webhook
 app.post(
-  "/api/transactions/webhook",
-  express.raw({ type: "application/json" }),
+  "/api/safepay-webhook",
+  express.raw({ type: "*/*" }),  // temp: accept all content-types
   (req, res, next) => {
-    req.rawBody = req.body; // raw buffer
+    console.log("📩 Headers:", req.headers);
+    console.log("📩 Raw Buffer:", req.body);
+    req.rawBody = req.body;
     next();
   },
-  (req, res) => {
-    // your stripe controller
-    res.send("Stripe webhook received ✅");
-  }
+  safepayWebhook
 );
+
 
 // ✅ After webhooks, apply JSON parser for all other APIs
 app.use(express.json());
