@@ -44,7 +44,7 @@ app.use(cors(corsOptions));
 
 // Safepay webhook first
 app.post(
-  "/api/transactions/safepay-webhook",
+  "/transactions/safepay-webhook",
   express.raw({ type: "*/*" }), // accept all content-types Safepay sends
   (req, res, next) => {
     req.rawBody = req.body.toString("utf8");

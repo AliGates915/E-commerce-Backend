@@ -10,13 +10,6 @@ import { User } from "../models/User.js"; // import your new User model
 import nodemailer from "nodemailer"; // import nodemailer
 dotenv.config();
 
-// const safepay = new Safepay("sec_07f70953-7684-41a1-b930-9d1497436084", {
-//   authType: "secret",
-//   host: process.env.NODE_ENV === "production"
-//     ? "https://api.getsafepay.com"
-//     : "https://sandbox.api.getsafepay.com",
-// });
-
 import safepay from "../config/safepay.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -173,12 +166,10 @@ export const stripeWebhook = async (req, res) => {
     }
 
     if (!productsWithDetails.length) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "No valid products found in line items",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "No valid products found in line items",
+      });
     }
 
     const totalAmount = session.amount_total / 100;
@@ -296,6 +287,7 @@ export const stripeWebhook = async (req, res) => {
 };
 
 //Safepay Checkout
+// Safepay Checkout
 export const safepayCheckoutSession = async (req, res) => {
   try {
     const { items, success_url, cancel_url } = req.body;
@@ -306,18 +298,18 @@ export const safepayCheckoutSession = async (req, res) => {
         .json({ success: false, message: "No items provided" });
     }
 
-    // calculate total in paisa (PKR × 100)
+    // Calculate total amount in paisa (PKR × 100)
     const totalAmount =
-      items.reduce((sum, p) => sum + p.price * p.quantity, 0);
+      items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100;
 
-    // create payment token
+    // Create payment token
     const { token } = await safepay.payments.create({
       currency: "PKR",
       amount: totalAmount,
     });
-    
-    // create checkout url
-    const checkoutUrl = safepay.checkout.create({
+
+    // Create checkout URL (synchronous)
+    const checkoutUrlObj = safepay.checkout.create({
       token,
       orderId: `order_${Date.now()}`, // unique orderId
       cancelUrl: cancel_url,
@@ -326,7 +318,10 @@ export const safepayCheckoutSession = async (req, res) => {
       webhooks: true,
     });
 
-    console.log("Checkout ", checkoutUrl);
+    // Extract the actual URL
+    const checkoutUrl = checkoutUrlObj.url;
+
+    console.log("Checkout URL:", checkoutUrl);
 
     return res.status(200).json({ success: true, url: checkoutUrl });
   } catch (err) {
@@ -420,9 +415,6 @@ export const safepayWebhook = async (req, res) => {
   }
 };
 
-
-
-
 // export const safepayWebhook = async (req, res) => {
 //   try {
 //     const signature = req.headers["x-sfpy-signature"]; // ✅ correct header
@@ -441,11 +433,9 @@ export const safepayWebhook = async (req, res) => {
 //     const event1 = JSON.parse(payload); // ✅ must parse after verifying
 //     console.log("Webhook Event:", event1);
 
-
-
 //     const event = req.body;
 //     console.log("Event", event);
-    
+
 //     if (event.type === "payment.paid") {
 //       const { order_id, amount, metadata } = event.data;
 //       const userId = metadata?.userId;
@@ -465,7 +455,6 @@ export const safepayWebhook = async (req, res) => {
 //       }
 
 //       console.log("Cart ", cart);
-      
 
 //       // ✅ Now use `productId` instead of `product`
 //       const productsWithDetails = cart.items.map((item) => ({
