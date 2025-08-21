@@ -47,7 +47,7 @@ app.post(
 
 // Stripe webhook
 app.post(
-  "/api/safepay-webhook",
+  "/safepay-webhook",
   express.raw({ type: "*/*" }),  // temp: accept all content-types
   (req, res, next) => {
     console.log("📩 Headers:", req.headers);
