@@ -316,7 +316,7 @@ export const safepayCheckoutSession = async (req, res) => {
       amount: totalAmount,
     });
 
-    console.log("redirectUrl", success_url);
+    // console.log("redirectUrl", success_url);
     
     // create checkout url
     const checkoutUrl = safepay.checkout.create({
