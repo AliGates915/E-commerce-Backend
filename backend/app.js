@@ -68,8 +68,6 @@ app.post(
   safepayWebhook
 );
 
-// Stripe webhook
-app.post("/api/transactions/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 
 // All other APIs
 app.use(express.json());
