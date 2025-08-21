@@ -45,9 +45,25 @@ app.use(express.json());
 // Safepay webhook also needs raw body
 app.post(
   "/safepay-webhook",
-  express.raw({ type: "application/json" }),
-  safepayWebhook 
+  express.raw({ type:"*/*" }),
+  (req, res, next) => {
+    console.log("📩 [Safepay] Webhook hit");
+    console.log("📩 [Safepay] Headers:", req.headers);
+    console.log("📩 [Safepay] Raw Buffer:", req.body);
+
+    try {
+      const rawString = req.body.toString("utf8");
+      console.log("📩 [Safepay] Raw String:", rawString);
+      req.rawBody = req.body;
+    } catch (err) {
+      console.error("❌ [Safepay] Error converting raw body:", err.message);
+    }
+
+    next();
+  },
+  safepayWebhook
 );
+
 
 
 
