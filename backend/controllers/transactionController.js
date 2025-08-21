@@ -303,27 +303,54 @@ export const safepayCheckoutSession = async (req, res) => {
       items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100;
 
     // Create payment token
-    const { token } = await safepay.payments.create({
+    // const {  } = await safepay.payments.create({
+    //   currency: "PKR",
+    //   amount: totalAmount,
+    // });
+    // 200 *100
+    // 20000
+    // safepay.order.configure
+
+    const tbt = await safepay.client.passport();
+
+    const { token } = await safepay.payments.session({
+      merchant_api_key: "sec_07f70953-7684-41a1-b930-9d1497436084",
+      mode: "payment",
       currency: "PKR",
-      amount: totalAmount,
+      amount: 500000,
+      entry_mode: "raw",
+      metadata: {
+        source: "hosted",
+        order_id: "",
+      },
+    });
+
+    const checkoutURL = safepay.checkout.createCheckoutUrl({
+      tracker: token,
+      env: "sandbox", // or "production"
+      redirectUrl: success_url,
+      cancelUrl: cancel_url,
+      source: "hosted",
+      tbt,
+      order_id,
+      user_id,
     });
 
     // Create checkout URL (synchronous)
-    const checkoutUrlObj = safepay.checkout.create({
-      token,
-      orderId: `order_${Date.now()}`, // unique orderId
-      cancelUrl: cancel_url,
-      redirectUrl: success_url,
-      source: "custom",
-      webhooks: true,
-    });
+    // const checkoutUrlObj = safepay.checkout.create({
+    //   token,
+    //   orderId: `order_${Date.now()}`, // unique orderId
+    //   cancelUrl: cancel_url,
+    //   redirectUrl: success_url,
+    //   source: "custom",
+    //   webhooks: true,
+    // });
 
     // Extract the actual URL
-    const checkoutUrl = checkoutUrlObj.url;
 
-    console.log("Checkout URL:", checkoutUrl);
+    console.log("Checkout URL:", checkoutURL);
 
-    return res.status(200).json({ success: true, url: checkoutUrl });
+    return res.status(200).json({ success: true, url: checkoutURL });
   } catch (err) {
     console.error("Safepay error:", err?.response?.data || err.message);
     return res.status(500).json({ success: false, message: err.message });
