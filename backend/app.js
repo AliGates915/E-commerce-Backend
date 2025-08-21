@@ -44,7 +44,7 @@ app.use(express.json());
 
 // Safepay webhook also needs raw body
 app.post(
-  "/api/transactions/safepay-webhook",
+  "/safepay-webhook",
   express.raw({ type: "application/json" }),
   safepayWebhook
 );
