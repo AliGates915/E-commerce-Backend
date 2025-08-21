@@ -336,7 +336,7 @@ export const safepayCheckoutSession = async (req, res) => {
 };
 
 // Safepay webhook trigger
-const safepayWebhook = (req, res) => {
+export const safepayWebhook = (req, res) => {
   try {
     // req.rawBody is a Buffer
     const rawString = req.rawBody.toString("utf8");
