@@ -362,11 +362,7 @@ export const safepayWebhook = async (req, res) => {
 
     // Extract data
     const data = payload?.data || {};
-    console.log("Data", data);
-    
-    const orderId = data?.metadata?.order_id;
     const userId = data?.metadata?.order_id;
-    console.log("Order Id", orderId);
     
     const amount = data?.amount / 100; // convert paisa to full currency
     const currency = data?.currency;
@@ -375,14 +371,14 @@ export const safepayWebhook = async (req, res) => {
       data?.state === "TRACKER_ENDED" ? "completed" : data?.state;
 
     console.log("📦 [Safepay] Extracted:", {
-      orderId,
+      userId,
       amount,
       currency,
       transactionId,
       paymentStatus,
     });
 
-    if (!orderId) {
+    if (!userId) {
       console.warn("⚠️ [Safepay] No orderId in metadata, skipping save");
       return res.status(200).json({ received: true });
     }
@@ -405,8 +401,6 @@ export const safepayWebhook = async (req, res) => {
         paymentStatus,
       }).save();
 
-
-
       console.log("💾 [Safepay] Transaction saved:", transactionId);
     } catch (err) {
       if (err.code === 11000) {
@@ -417,180 +411,12 @@ export const safepayWebhook = async (req, res) => {
       }
     }
 
-
-   
-
     res.status(200).json({ received: true });
   } catch (err) {
     console.error("❌ [Safepay] Webhook Handler Error:", err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);
   }
 };
-
-// export const safepayWebhook = async (req, res) => {
-//   try {
-//     const signature = req.headers["x-sfpy-signature"]; // ✅ correct header
-//     const payload = req.body.toString("utf8"); // raw body string
-
-//     // ✅ Verify Safepay webhook signature
-//     const expected = crypto
-//       .createHmac("sha512", '2e569f82877c3507cbaa35dd516757d8e7276168fe81fb390acd83c065c9bada')
-//       .update(payload)
-//       .digest("hex");
-
-//     if (signature !== expected) {
-//       console.error("Invalid Safepay webhook signature");
-//       return res.status(400).send("Invalid signature");
-//     }
-//     const event1 = JSON.parse(payload); // ✅ must parse after verifying
-//     console.log("Webhook Event:", event1);
-
-//     const event = req.body;
-//     console.log("Event", event);
-
-//     if (event.type === "payment.paid") {
-//       const { order_id, amount, metadata } = event.data;
-//       const userId = metadata?.userId;
-
-//       if (!userId) {
-//         return res
-//           .status(400)
-//           .json({ success: false, message: "Missing userId in metadata" });
-//       }
-
-//       // ✅ Fetch cart + product details
-//       const cart = await Cart.findOne({ userId }).populate("items.productId");
-//       if (!cart || !cart.items.length) {
-//         return res
-//           .status(400)
-//           .json({ success: false, message: "Cart empty or not found" });
-//       }
-
-//       console.log("Cart ", cart);
-
-//       // ✅ Now use `productId` instead of `product`
-//       const productsWithDetails = cart.items.map((item) => ({
-//         name: item.productId.name,
-//         quantity: item.quantity,
-//         price: item.productId.price,
-//       }));
-
-//       const totalAmount = amount / 100;
-//       const transactionId = order_id;
-//       const paymentStatus = "completed";
-
-//       // ✅ Save transaction
-//       await new Transaction({
-//         userId,
-//         products: productsWithDetails,
-//         totalAmount,
-//         paymentStatus,
-//         transactionId,
-//       }).save();
-
-//       // ✅ Clear cart
-//       await Cart.findOneAndUpdate({ userId }, { $set: { items: [] } });
-
-//       // ✅ Reduce stock
-//       for (const prod of productsWithDetails) {
-//         await Product.findOneAndUpdate(
-//           { name: prod.name },
-//           { $inc: { stock: -prod.quantity } }
-//         );
-//       }
-
-//       // ✅ Save order
-//       await new Order({
-//         userId,
-//         products: productsWithDetails,
-//         totalAmount,
-//         paymentStatus,
-//         transactionId,
-//       }).save();
-
-// //       // ✅ Send confirmation email
-// //       const user = await User.findById(userId);
-// //       if (user?.email) {
-// //         const transporter = nodemailer.createTransport({
-// //           service: "gmail",
-// //           auth: {
-// //             user: "hacktech877@gmail.com",
-// //             pass: "ggsg dipv skrz xjct", // ⚠️ better: use env var
-// //           },
-// //         });
-
-// //         const userName = user?.name || user?.username || "Valued Customer";
-// //         const userEmail = user.email;
-
-// //         const htmlContent = `
-// // <!DOCTYPE html>
-// // <html>
-// // <head><meta charset="UTF-8"><title>Order Confirmation</title></head>
-// // <body>
-// //   <div style="max-width:600px;margin:auto;padding:20px;font-family:sans-serif;">
-// //     <h2 style="background:#667eea;color:#fff;padding:15px;text-align:center;">🎉 Order Confirmation</h2>
-// //     <p>Hello <strong>${userName}</strong>,</p>
-// //     <p>Thank you for your purchase! Here are your order details:</p>
-
-// //     <table width="100%" border="1" cellspacing="0" cellpadding="10" style="border-collapse: collapse;">
-// //       <thead style="background: #eee;">
-// //         <tr>
-// //           <th align="left">Product</th>
-// //           <th align="center">Qty</th>
-// //           <th align="right">Price</th>
-// //           <th align="right">Subtotal</th>
-// //         </tr>
-// //       </thead>
-// //       <tbody>
-// //         ${productsWithDetails
-// //           .map(
-// //             (p) => `
-// //           <tr>
-// //             <td>${p.name}</td>
-// //             <td align="center">${p.quantity}</td>
-// //             <td align="right">PKR ${p.price.toFixed(2)}</td>
-// //             <td align="right">PKR ${(p.price * p.quantity).toFixed(2)}</td>
-// //           </tr>
-// //         `
-// //           )
-// //           .join("")}
-// //       </tbody>
-// //       <tfoot>
-// //         <tr>
-// //           <td colspan="3" align="right"><strong>Total:</strong></td>
-// //           <td align="right"><strong>PKR ${totalAmount.toFixed(2)}</strong></td>
-// //         </tr>
-// //       </tfoot>
-// //     </table>
-
-// //     <p>If you have any questions, feel free to contact us.</p>
-// //     <p>— Wahid Foods SMC Team</p>
-// //   </div>
-// // </body>
-// // </html>`;
-
-// //         await transporter.sendMail({
-// //           from: "hacktech877@gmail.com",
-// //           to: userEmail,
-// //           subject: "Order Confirmation - Wahid Foods",
-// //           html: htmlContent,
-// //         });
-// //       }
-
-//       return res.status(200).json({ received: true });
-//     }
-
-//     if (event.type === "payment.failed") {
-//       console.warn("Payment failed:", event.data);
-//       return res.status(200).json({ received: true });
-//     }
-
-//     return res.status(200).json({ received: true });
-//   } catch (err) {
-//     console.error("Safepay webhook error:", err);
-//     return res.status(500).json({ success: false, message: err.message });
-//   }
-// };
 
 // Get transaction history for a specific user with completed payment status
 export const getUserTransactionHistory = async (req, res) => {
