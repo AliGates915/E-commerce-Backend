@@ -346,7 +346,6 @@ export const safepayCheckoutSession = async (req, res) => {
     // Create checkout URL
     const checkoutURL = safepay.checkout.createCheckoutUrl({
       tracker: token,
-      is_implicit:true,
       redirect_url: success_url,
       env: "production", // or "sandbox"
       cancelUrl: cancel_url,
