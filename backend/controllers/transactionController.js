@@ -331,7 +331,7 @@ export const safepayCheckoutSession = async (req, res) => {
     } = await safepay.payments.session.setup({
       merchant_api_key: "sec_07f70953-7684-41a1-b930-9d1497436084",
       mode: "payment",
-      currency: "PKR",
+      currency: "USD",
       amount: totalAmount,
       entry_mode: "raw",
       metadata: {
