@@ -340,7 +340,7 @@ export const safepayCheckoutSession = async (req, res) => {
       },
     });
     // Save userId on your backend if needed
-    const orderId = userId;
+    const orderId = `order_${Date.now()}`;
     console.log("Token", token);
 
     // Create checkout URL
