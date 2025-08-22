@@ -322,6 +322,7 @@ export const safepayCheckoutSession = async (req, res) => {
         console.warn(`Product not found for item: ${name}`);
       }
     }
+    const payload = JSON.stringify({ productsWithDetails });
     // Create Safepay payment session with metadata
     const {
       data: {
@@ -335,7 +336,7 @@ export const safepayCheckoutSession = async (req, res) => {
       entry_mode: "raw",
       metadata: {
         order_id: userId,
-        source: productsWithDetails,
+        source: payload,
       },
     });
     // Save userId on your backend if needed
