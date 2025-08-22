@@ -303,6 +303,10 @@ export const safepayCheckoutSession = async (req, res) => {
     const {data:tbt} = await safepay.client.passport.create();
     console.log("tbt", tbt);
 
+    const productNames = items
+      .map((item) => item.name)
+      .filter(Boolean)
+      .join(",");
     // Create Safepay payment session with metadata
     const  {data:{tracker:{token}}}  = await safepay.payments.session.setup({
       merchant_api_key: "sec_07f70953-7684-41a1-b930-9d1497436084",
@@ -312,8 +316,7 @@ export const safepayCheckoutSession = async (req, res) => {
       entry_mode: "raw",
       metadata: {
         order_id: userId,
-        // productNames: items.map((i) => i.name).join(", "),
-        source: "hosted", 
+        source: productNames, 
       },
     });
     // Save userId on your backend if needed
