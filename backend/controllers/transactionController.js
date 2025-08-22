@@ -298,17 +298,36 @@ export const safepayCheckoutSession = async (req, res) => {
         .json({ success: false, message: "No items provided" });
     }
 
-    const totalAmount = items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100; // PKR in paisa
+    const totalAmount =
+      items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100; // PKR in paisa
 
-    const {data:tbt} = await safepay.client.passport.create();
+    const { data: tbt } = await safepay.client.passport.create();
     console.log("tbt", tbt);
 
-    const productNames = items
-      .map((item) => item.name)
-      .filter(Boolean)
-      .join(",");
+    const productsWithDetails = [];
+
+    for (const item of items) {
+      const { name, quantity, unitAmount } = item;
+
+      // Find product by name (or use _id if you store IDs instead of names)
+      const product = await Product.findOne({ name });
+
+      if (product) {
+        productsWithDetails.push({
+          name: product.name,
+          quantity,
+          price: unitAmount,
+        });
+      } else {
+        console.warn(`Product not found for item: ${name}`);
+      }
+    }
     // Create Safepay payment session with metadata
-    const  {data:{tracker:{token}}}  = await safepay.payments.session.setup({
+    const {
+      data: {
+        tracker: { token },
+      },
+    } = await safepay.payments.session.setup({
       merchant_api_key: "sec_07f70953-7684-41a1-b930-9d1497436084",
       mode: "payment",
       currency: "PKR",
@@ -316,13 +335,13 @@ export const safepayCheckoutSession = async (req, res) => {
       entry_mode: "raw",
       metadata: {
         order_id: userId,
-        source: productNames, 
+        source: productsWithDetails,
       },
     });
     // Save userId on your backend if needed
     const orderId = userId;
     console.log("Token", token);
-    
+
     // Create checkout URL
     const checkoutURL = safepay.checkout.createCheckoutUrl({
       tracker: token,
@@ -331,7 +350,7 @@ export const safepayCheckoutSession = async (req, res) => {
       cancelUrl: cancel_url,
       source: "hosted",
       tbt,
-      order_id:orderId,
+      order_id: orderId,
     });
 
     console.log("Checkout URL:", checkoutURL);
@@ -342,7 +361,6 @@ export const safepayCheckoutSession = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
-
 
 // Safepay webhook trigger
 export const safepayWebhook = async (req, res) => {
@@ -366,20 +384,24 @@ export const safepayWebhook = async (req, res) => {
     // Extract data
     const data = payload?.data || {};
     const userId = data?.metadata?.order_id;
-    
+
     const amount = data?.amount / 100; // convert paisa to full currency
     const currency = data?.currency;
     const transactionId = payload?.token;
+    const products = data?.metadata?.source;
     const paymentStatus =
       data?.state === "TRACKER_ENDED" ? "completed" : data?.state;
+    if (paymentStatus === "completed") {
+      return res.redirect("https://www.wahidfoodssmc.com/success");
+    }
 
-    console.log("📦 [Safepay] Extracted:", {
-      userId,
-      amount,
-      currency,
-      transactionId,
-      paymentStatus,
-    });
+    // console.log("📦 [Safepay] Extracted:", {
+    //   userId,
+    //   amount,
+    //   currency,
+    //   transactionId,
+    //   paymentStatus,
+    // });
 
     if (!userId) {
       console.warn("⚠️ [Safepay] No orderId in metadata, skipping save");
@@ -389,6 +411,7 @@ export const safepayWebhook = async (req, res) => {
     // Save transaction
     try {
       await new Transaction({
+        products,
         totalAmount: amount,
         currency,
         transactionId,
@@ -399,6 +422,7 @@ export const safepayWebhook = async (req, res) => {
 
       await new Order({
         userId,
+        products,
         totalAmount: amount,
         transactionId,
         paymentStatus,
