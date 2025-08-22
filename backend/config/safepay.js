@@ -3,9 +3,9 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const safepay = new Safepay("1df9a6ab343facff1746c5aaa53bc50036de3eb30f2e9ce9c8589d2f54fe55c8", {
+const safepay = new Safepay("66d4c1404a5bf63955c32483deb10644b004b1b02a9b87ec44eb5ed8326f2fcb", {
     authType: "secret", // either 'jwt' or 'secret' depending on what you provide
-    host: "https://sandbox.api.getsafepay.com", // can be configured to our sandbox host for test transactions
+    host: "https://production.api.getsafepay.com", // can be configured to our sandbox host for test transactions
     
   });
 

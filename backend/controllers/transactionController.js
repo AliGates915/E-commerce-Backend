@@ -347,14 +347,12 @@ export const safepayCheckoutSession = async (req, res) => {
     const checkoutURL = safepay.checkout.createCheckoutUrl({
       tracker: token,
       redirect_url: success_url,
-      env: "sandbox", // or "production"
+      env: "production", // or "sandbox"
       cancelUrl: cancel_url,
       source: "hosted",
       tbt,
       order_id: orderId,
     });
-    console.log("Redirect URL:", success_url);
-    console.log("Cancel URL:", cancel_url);
     console.log("Checkout URL:", checkoutURL);
 
     return res.status(200).json({ success: true, url: checkoutURL });
@@ -391,7 +389,7 @@ export const safepayWebhook = async (req, res) => {
     const currency = data?.currency;
     const transactionId = payload?.token;
     const productsSource = data?.metadata?.source;
-    
+
     let products = [];
     if (productsSource) {
       try {
@@ -419,9 +417,8 @@ export const safepayWebhook = async (req, res) => {
         paymentStatus,
       }).save();
 
-      const cartData = await Cart.findOneAndUpdate({ userId }, { $set: { items: [] } });
-      console.log("==============Cart Data============", cartData);
-      
+      await Cart.findOneAndUpdate({ userId }, { $set: { items: [] } });
+
       await new Order({
         userId,
         products,
