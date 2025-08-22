@@ -346,14 +346,15 @@ export const safepayCheckoutSession = async (req, res) => {
     // Create checkout URL
     const checkoutURL = safepay.checkout.createCheckoutUrl({
       tracker: token,
+      redirect_url: success_url,
       env: "sandbox", // or "production"
-      redirectUrl: success_url,
       cancelUrl: cancel_url,
       source: "hosted",
       tbt,
       order_id: orderId,
     });
-
+    console.log("Redirect URL:", success_url);
+    console.log("Cancel URL:", cancel_url);
     console.log("Checkout URL:", checkoutURL);
 
     return res.status(200).json({ success: true, url: checkoutURL });
@@ -389,20 +390,19 @@ export const safepayWebhook = async (req, res) => {
     const amount = data?.amount / 100; // convert paisa to full currency
     const currency = data?.currency;
     const transactionId = payload?.token;
-    const products = data?.metadata?.source;
+    const productsSource = data?.metadata?.source;
+    
+    let products = [];
+    if (productsSource) {
+      try {
+        const parsed = JSON.parse(productsSource);
+        products = parsed.productsWithDetails || [];
+      } catch (err) {
+        console.error("❌ Failed to parse metadata.source", err);
+      }
+    }
     const paymentStatus =
       data?.state === "TRACKER_ENDED" ? "completed" : data?.state;
-    if (paymentStatus === "completed") {
-      return res.redirect("https://www.wahidfoodssmc.com/success");
-    }
-
-    // console.log("📦 [Safepay] Extracted:", {
-    //   userId,
-    //   amount,
-    //   currency,
-    //   transactionId,
-    //   paymentStatus,
-    // });
 
     if (!userId) {
       console.warn("⚠️ [Safepay] No orderId in metadata, skipping save");
@@ -419,8 +419,9 @@ export const safepayWebhook = async (req, res) => {
         paymentStatus,
       }).save();
 
-      await Cart.findOneAndUpdate({ userId }, { $set: { items: [] } });
-
+      const cartData = await Cart.findOneAndUpdate({ userId }, { $set: { items: [] } });
+      console.log("==============Cart Data============", cartData);
+      
       await new Order({
         userId,
         products,
