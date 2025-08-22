@@ -287,10 +287,10 @@ export const stripeWebhook = async (req, res) => {
 };
 
 //Safepay Checkout
-// Safepay Checkout
+
 export const safepayCheckoutSession = async (req, res) => {
   try {
-    const { items, success_url, cancel_url } = req.body;
+    const { items, success_url, cancel_url, userId } = req.body;
 
     if (!items?.length) {
       return res
@@ -298,33 +298,29 @@ export const safepayCheckoutSession = async (req, res) => {
         .json({ success: false, message: "No items provided" });
     }
 
-    // Calculate total amount in paisa (PKR × 100)
-    const totalAmount =
-      items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100;
+    const totalAmount = items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100; // PKR in paisa
 
-    // Create payment token
-    // const {  } = await safepay.payments.create({
-    //   currency: "PKR",
-    //   amount: totalAmount,
-    // });
-    // 200 *100
-    // 20000
-    // safepay.order.configure
+    const {data:tbt} = await safepay.client.passport.create();
+    console.log("tbt", tbt);
 
-    const tbt = await safepay.client.passport();
-
-    const { token } = await safepay.payments.session({
+    // Create Safepay payment session with metadata
+    const  {data:{tracker:{token}}}  = await safepay.payments.session.setup({
       merchant_api_key: "sec_07f70953-7684-41a1-b930-9d1497436084",
       mode: "payment",
       currency: "PKR",
-      amount: 500000,
+      amount: totalAmount,
       entry_mode: "raw",
       metadata: {
-        source: "hosted",
-        order_id: "",
+        order_id: userId,
+        // productNames: items.map((i) => i.name).join(", "),
+        source: "hosted", 
       },
     });
-
+    // Save userId on your backend if needed
+    const orderId = userId;
+    console.log("Token", token);
+    
+    // Create checkout URL
     const checkoutURL = safepay.checkout.createCheckoutUrl({
       tracker: token,
       env: "sandbox", // or "production"
@@ -332,21 +328,8 @@ export const safepayCheckoutSession = async (req, res) => {
       cancelUrl: cancel_url,
       source: "hosted",
       tbt,
-      order_id,
-      user_id,
+      order_id:orderId,
     });
-
-    // Create checkout URL (synchronous)
-    // const checkoutUrlObj = safepay.checkout.create({
-    //   token,
-    //   orderId: `order_${Date.now()}`, // unique orderId
-    //   cancelUrl: cancel_url,
-    //   redirectUrl: success_url,
-    //   source: "custom",
-    //   webhooks: true,
-    // });
-
-    // Extract the actual URL
 
     console.log("Checkout URL:", checkoutURL);
 
@@ -356,6 +339,7 @@ export const safepayCheckoutSession = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // Safepay webhook trigger
 export const safepayWebhook = async (req, res) => {
@@ -378,7 +362,12 @@ export const safepayWebhook = async (req, res) => {
 
     // Extract data
     const data = payload?.data || {};
+    console.log("Data", data);
+    
     const orderId = data?.metadata?.order_id;
+    const userId = data?.metadata?.order_id;
+    console.log("Order Id", orderId);
+    
     const amount = data?.amount / 100; // convert paisa to full currency
     const currency = data?.currency;
     const transactionId = payload?.token;
@@ -401,13 +390,22 @@ export const safepayWebhook = async (req, res) => {
     // Save transaction
     try {
       await new Transaction({
-        orderId,
         totalAmount: amount,
         currency,
         transactionId,
         paymentStatus,
-        provider: "safepay",
       }).save();
+
+      await Cart.findOneAndUpdate({ userId }, { $set: { items: [] } });
+
+      await new Order({
+        userId,
+        totalAmount: amount,
+        transactionId,
+        paymentStatus,
+      }).save();
+
+
 
       console.log("💾 [Safepay] Transaction saved:", transactionId);
     } catch (err) {
@@ -419,21 +417,8 @@ export const safepayWebhook = async (req, res) => {
       }
     }
 
-    // Update order payment status if exists
-    try {
-      const updatedOrder = await Order.findOneAndUpdate(
-        { orderId },
-        { $set: { paymentStatus, transactionId } },
-        { new: true }
-      );
-      if (updatedOrder) {
-        console.log("✅ [Safepay] Order updated:", orderId);
-      } else {
-        console.warn("⚠️ [Safepay] Order not found for orderId:", orderId);
-      }
-    } catch (err) {
-      console.error("❌ [Safepay] Order update error:", err);
-    }
+
+   
 
     res.status(200).json({ received: true });
   } catch (err) {
