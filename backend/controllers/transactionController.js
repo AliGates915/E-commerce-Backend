@@ -289,15 +289,15 @@ export const stripeWebhook = async (req, res) => {
 //Safepay Checkout
 export const safepayCheckoutSession = async (req, res) => {
   try {
-    const { items, success_url, cancel_url, userId, deviceFingerprintId  } = req.body;
+    const { items, success_url, cancel_url, userId, deviceFingerprintId } = req.body;
     if (!items?.length) {
       return res
         .status(400)
         .json({ success: false, message: "No items provided" });
     }
-    
+
     const totalAmount =
-      items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100; // PKR in paisa
+      items.reduce((sum, p) => sum + p.price * p.quantity, 0); // PKR in paisa
 
     // ✅ Create TBT
     const { data: tbt } = await safepay.client.passport.create();
@@ -326,22 +326,23 @@ export const safepayCheckoutSession = async (req, res) => {
 
     // ✅ Create Safepay payment session
     const responseFromSafepay = await safepay.payments.session.setup({
-      merchant_api_key: 'sec_d5380251-ae35-4b82-a2d3-60ea9a136e40',
+      merchant_api_key: "sec_d5380251-ae35-4b82-a2d3-60ea9a136e40", // ✅ Public key
       mode: "payment",
       currency: "USD",
       amount: totalAmount,
       entry_mode: "raw",
       metadata: { order_id: userId, source: payload },
       payload: {
-        billing: { use_synthetic: true }, // or real billing info
+        billing: { use_synthetic: true },
         authorization: { do_capture: true },
         authentication_setup: {
           success_url,
           failure_url: cancel_url,
-          device_fingerprint_session_id: deviceFingerprintId, // ✅ from frontend
+          device_fingerprint_session_id: deviceFingerprintId,
         },
       },
     });
+
 
     const {
       tracker: { token },
