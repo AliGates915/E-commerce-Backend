@@ -238,8 +238,8 @@ export const stripeWebhook = async (req, res) => {
       </thead>
       <tbody>
         ${productsWithDetails
-          .map(
-            (p) => `
+            .map(
+              (p) => `
           <tr>
             <td>${p.name}</td>
             <td align="center">${p.quantity}</td>
@@ -247,8 +247,8 @@ export const stripeWebhook = async (req, res) => {
             <td align="right">$${(p.price * p.quantity).toFixed(2)}</td>
           </tr>
         `
-          )
-          .join("")}
+            )
+            .join("")}
       </tbody>
       <tfoot>
         <tr>
@@ -289,7 +289,7 @@ export const stripeWebhook = async (req, res) => {
 //Safepay Checkout
 export const safepayCheckoutSession = async (req, res) => {
   try {
-    const { items, success_url, cancel_url, userId } = req.body;
+    const { items, success_url, cancel_url, userId, deviceFingerprintId  } = req.body;
 
     if (!items?.length) {
       return res
@@ -327,14 +327,20 @@ export const safepayCheckoutSession = async (req, res) => {
 
     // ✅ Create Safepay payment session
     const responseFromSafepay = await safepay.payments.session.setup({
-      merchant_api_key: 'sec_d5380251-ae35-4b82-a2d3-60ea9a136e40', 
+      merchant_api_key: 'sec_d5380251-ae35-4b82-a2d3-60ea9a136e40',
       mode: "payment",
       currency: "USD",
       amount: totalAmount,
       entry_mode: "raw",
-      metadata: {
-        order_id: userId,
-        source: payload,
+      metadata: { order_id: userId, source: payload },
+      payload: {
+        billing: { use_synthetic: true }, // or real billing info
+        authorization: { do_capture: true },
+        authentication_setup: {
+          success_url,
+          failure_url: cancel_url,
+          device_fingerprint_session_id: req.body.deviceFingerprintId, // ✅ from frontend
+        },
       },
     });
 
