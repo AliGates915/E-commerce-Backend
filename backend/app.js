@@ -34,13 +34,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use((req, res, next) => {
-  res.setHeader(
-    "Permissions-Policy",
-    'geolocation=(self "https://wahidfoodssmc.com")'
-  );
-  next();
-});
+res.setHeader(
+  "Permissions-Policy",
+  'geolocation=(self "https://wahidfoodssmc.com" "https://geo.cardinalcommerce.com")'
+);
+
 
 
 // // Stripe webhook needs raw body
