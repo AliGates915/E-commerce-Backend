@@ -287,7 +287,6 @@ export const stripeWebhook = async (req, res) => {
 };
 
 //Safepay Checkout
-
 export const safepayCheckoutSession = async (req, res) => {
   try {
     const { items, success_url, cancel_url, userId } = req.body;
@@ -301,13 +300,14 @@ export const safepayCheckoutSession = async (req, res) => {
     const totalAmount =
       items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100; // PKR in paisa
 
+    // ✅ Create TBT
     const { data: tbt } = await safepay.client.passport.create();
     console.log("tbt", tbt);
 
     const productsWithDetails = [];
 
     for (const item of items) {
-      const { name, quantity, unitAmount } = item;
+      const { name, quantity, price } = item;
 
       // Find product by name (or use _id if you store IDs instead of names)
       const product = await Product.findOne({ name });
@@ -316,20 +316,18 @@ export const safepayCheckoutSession = async (req, res) => {
         productsWithDetails.push({
           name: product.name,
           quantity,
-          price: unitAmount,
+          price,
         });
       } else {
         console.warn(`Product not found for item: ${name}`);
       }
     }
+
     const payload = JSON.stringify({ productsWithDetails });
-    // Create Safepay payment session with metadata
-    const {
-      data: {
-        tracker: { token },
-      },
-    } = await safepay.payments.session.setup({
-      merchant_api_key: "sec_07f70953-7684-41a1-b930-9d1497436084",
+
+    // ✅ Create Safepay payment session
+    const responseFromSafepay = await safepay.payments.session.setup({
+      merchant_api_key: process.env.SAFEPAY_SECRET_KEY, // 🔒 don’t hardcode
       mode: "payment",
       currency: "USD",
       amount: totalAmount,
@@ -339,28 +337,39 @@ export const safepayCheckoutSession = async (req, res) => {
         source: payload,
       },
     });
-    // Save userId on your backend if needed
-    const orderId = `order_${Date.now()}`;
-    console.log("Token", token);
 
-    // Create checkout URL
+    const {
+      tracker: { token },
+    } = responseFromSafepay.data;
+
+    // ✅ Create checkout URL
+    const orderId = `order_${Date.now()}`;
     const checkoutURL = safepay.checkout.createCheckoutUrl({
       tracker: token,
       redirect_url: success_url,
-      env: "production", // or "sandbox"
       cancelUrl: cancel_url,
+      env: "production", // or "sandbox"
       source: "hosted",
       tbt,
       order_id: orderId,
     });
+
     console.log("Checkout URL:", checkoutURL);
 
-    return res.status(200).json({ success: true, url: checkoutURL });
+    // ✅ Return both normal checkout url + step_up_url (if available)
+    return res.status(200).json({
+      success: true,
+      url: checkoutURL,
+      step_up_url:
+        responseFromSafepay?.data?.action?.payer_authentication_enrollment
+          ?.step_up_url || null,
+    });
   } catch (err) {
     console.error("Safepay error:", err?.response?.data || err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // Safepay webhook trigger
 export const safepayWebhook = async (req, res) => {
