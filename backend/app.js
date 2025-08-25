@@ -38,7 +38,7 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   res.setHeader(
     "Permissions-Policy",
-    'geolocation=(self "https://wahidfoodssmc.com" "https://geo.cardinalcommerce.com")'
+    'geolocation=(self "https://wahidfoodssmc.com" "http://localhost:8080")'
   );
   next();
 });
