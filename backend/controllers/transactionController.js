@@ -290,13 +290,12 @@ export const stripeWebhook = async (req, res) => {
 export const safepayCheckoutSession = async (req, res) => {
   try {
     const { items, success_url, cancel_url, userId, deviceFingerprintId  } = req.body;
-
     if (!items?.length) {
       return res
         .status(400)
         .json({ success: false, message: "No items provided" });
     }
-
+    
     const totalAmount =
       items.reduce((sum, p) => sum + p.price * p.quantity, 0) * 100; // PKR in paisa
 
@@ -339,7 +338,7 @@ export const safepayCheckoutSession = async (req, res) => {
         authentication_setup: {
           success_url,
           failure_url: cancel_url,
-          device_fingerprint_session_id: req.body.deviceFingerprintId, // ✅ from frontend
+          device_fingerprint_session_id: deviceFingerprintId, // ✅ from frontend
         },
       },
     });
