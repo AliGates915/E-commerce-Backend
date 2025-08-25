@@ -327,7 +327,7 @@ export const safepayCheckoutSession = async (req, res) => {
 
     // ✅ Create Safepay payment session
     const responseFromSafepay = await safepay.payments.session.setup({
-      merchant_api_key: process.env.SAFEPAY_SECRET_KEY, // 🔒 don’t hardcode
+      merchant_api_key: '66d4c1404a5bf63955c32483deb10644b004b1b02a9b87ec44eb5ed8326f2fcb', // 🔒 don’t hardcode
       mode: "payment",
       currency: "USD",
       amount: totalAmount,
