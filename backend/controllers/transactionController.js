@@ -332,15 +332,15 @@ export const safepayCheckoutSession = async (req, res) => {
       amount: totalAmount,
       entry_mode: "raw",
       metadata: { order_id: userId, source: payload },
-      payload: {
-        billing: { use_synthetic: true },
-        authorization: { do_capture: true },
-        authentication_setup: {
-          success_url,
-          failure_url: cancel_url,
-          device_fingerprint_session_id: deviceFingerprintId,
-        },
-      },
+      // payload: {
+      //   billing: { use_synthetic: true },
+      //   authorization: { do_capture: true },
+      //   authentication_setup: {
+      //     success_url,
+      //     failure_url: cancel_url,
+      //     device_fingerprint_session_id: deviceFingerprintId,
+      //   },
+      // },
     });
 
 
