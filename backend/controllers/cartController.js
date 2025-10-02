@@ -22,7 +22,8 @@ export const addToCart = async (req, res) => {
         // Else, push new item
         cart.items.push({ productId, quantity });
       }
-
+      console.log("====== Item In the cart =======", cart);
+      
       await cart.save();
       return res.status(200).json({ message: "Cart updated", cart });
     } else {

@@ -289,7 +289,8 @@ export const stripeWebhook = async (req, res) => {
 //Safepay Checkout
 export const safepayCheckoutSession = async (req, res) => {
   try {
-    const { items, success_url, cancel_url, userId, deviceFingerprintId } = req.body;
+    const { items, success_url, cancel_url, userId } = req.body;
+    console.log("====== safepayCheckoutSession =======", req.body);
     if (!items?.length) {
       return res
         .status(400)
