@@ -26,6 +26,7 @@ const corsOptions = {
     'https://wahidfoods.com',
     'http://localhost:8081',
     'https://infinity-byte-frontend.vercel.app',
+    'https://e-commerce-infinity-byte.vercel.app',
     'http://localhost:5500'
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
