@@ -46,8 +46,8 @@ app.use((req, res, next) => {
 
 
 
-// // Stripe webhook needs raw body
-// app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
+// Stripe webhook needs raw body
+app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
 
 
 // // All other routes use JSON
@@ -55,15 +55,15 @@ app.use((req, res, next) => {
 
 
 // Safepay webhook first
-app.post(
-  "/transactions/safepay-webhook",
-  express.raw({ type: "*/*" }), // accept all content-types Safepay sends
-  (req, res, next) => {
-    req.rawBody = req.body.toString("utf8");
-    next();
-  },
-  safepayWebhook
-);
+// app.post(
+//   "/transactions/safepay-webhook",
+//   express.raw({ type: "*/*" }), // accept all content-types Safepay sends
+//   (req, res, next) => {
+//     req.rawBody = req.body.toString("utf8");
+//     next();
+//   },
+//   safepayWebhook
+// );
 
 
 

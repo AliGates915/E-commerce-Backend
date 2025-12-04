@@ -89,7 +89,7 @@ export const createCheckoutSession = async (req, res) => {
       // Use custom URLs if provided, otherwise fallback to default
       success_url:
         success_url ||
-        `https://www.wahidfoodssmc.com/success?session_id={CHECKOUT_SESSION_ID}`,
+        `https://e-commerce-infinity-byte.vercel.app/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancel_url || `https://www.wahidfoodssmc.com/cancel`,
       metadata: {
         userId,
