@@ -44,14 +44,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// // All other routes use JSON
+app.use(express.json());
 
 
 // Stripe webhook needs raw body
 app.use('/api/transactions/webhook', express.raw({ type: 'application/json' }));
 
 
-// // All other routes use JSON
-// app.use(express.json());
 
 
 // Safepay webhook first

@@ -19,7 +19,7 @@ router.get('/transaction-history/:userId', getUserTransactionHistory);
 
 // Stripe routes
 router.post('/create-checkout-session', createCheckoutSession);
-// router.post('/webhook', stripeWebhook);
+router.post('/webhook', stripeWebhook);
 
 // ✅ Safepay routes
 router.post('/safepay-checkout-session', safepayCheckoutSession);
