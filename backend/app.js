@@ -45,7 +45,7 @@ app.use((req, res, next) => {
 });
 
 // // All other routes use JSON
-app.use(express.json());
+// app.use(express.json());
 
 
 // Stripe webhook needs raw body
