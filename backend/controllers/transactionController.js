@@ -38,15 +38,33 @@ export const createTransaction = async (req, res) => {
 
 export const getTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find().populate(
-      "userId",
-      "name email"
+    const transactions = await Transaction.find();
+
+    const finalData = await Promise.all(
+      transactions.map(async (t) => {
+        let userName = "Unknown";
+
+        // Find user only if userId exists
+        if (t.userId) {
+          const user = await User.findById(t.userId).select("name username");
+          if (user) {
+            userName = user.name || user.username || "Unknown";
+          }
+        }
+
+        return {
+          ...t._doc,
+          userName
+        };
+      })
     );
-    res.status(200).json({ success: true, data: transactions });
+
+    res.status(200).json({ success: true, data: finalData });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // Create Stripe Checkout Session
 export const createCheckoutSession = async (req, res) => {
