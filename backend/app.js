@@ -27,7 +27,7 @@ const corsOptions = {
     'http://localhost:8081',
     "https://sky-link-e-commerce.vercel.app",
     "https://e-commerce-infinity-byte-10.vercel.app",
-    "",
+    "https://core-tech-ecommerce.vercel.app",
     "https://core-tech-ecommerce-beta.vercel.app",
     'https://e-commerce-infinity-byte.vercel.app',
     'http://localhost:5500'
