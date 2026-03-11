@@ -10,6 +10,7 @@ import promotionRoutes from './routes/promotionRoutes.js';
 import transactionRoutes from './routes/transactionRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import { safepayWebhook } from "./controllers/transactionController.js";
+import aiRoutes from "./routes/ai.routes.js";
 
 
 dotenv.config();
@@ -89,6 +90,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/orders', orderRoutes);
+
+app.use("/api/ai", aiRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is working!");
