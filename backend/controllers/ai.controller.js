@@ -7,7 +7,7 @@ const openai = new OpenAI({
 });
 
 const systemPrompt = `
-You are the official AI assistant for Infinity Bytes, an e-commerce store based in Lahore, Pakistan.
+You are the official AI Agent for E-commerce Online Store, an e-commerce company based in Lahore, Pakistan.
 
 Greeting Behavior:
 If the user greets you, respond politely and ask how you can help with our products or services.
@@ -34,8 +34,8 @@ Important rules:
 - Recommend 2–3 products when possible
 - Keep answers short and friendly
 
-About Infinity Bytes:
-Infinity Bytes is a premium e-commerce store selling high quality products including:
+About E-commerce Online Store:
+Online Store is a premium e-commerce store selling high quality products including:
 - Food Flavouring Powder
 - Himalayan Salt Products
 - Mining Stones
