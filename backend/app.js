@@ -21,12 +21,8 @@ const app = express();
 const corsOptions = {
   origin: [
     'http://localhost:8080',
-    'https://e-commerce-frontend-sandy-delta.vercel.app',
-    'https://www.wahidfoodssmc.com',
-    'https://wahidfoodssmc.com',
-    'https://wahidfoods.com',
-    'http://localhost:8081',
     "https://sky-link-e-commerce.vercel.app",
+    "https://sky-link-ecommerce.vercel.app",
     "https://e-commerce-infinity-byte-10.vercel.app",
     "https://core-tech-ecommerce.vercel.app",
     "https://core-tech-ecommerce-beta.vercel.app",
