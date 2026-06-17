@@ -3,7 +3,9 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import Conversation from "../models/Conversation.js";
 import { v4 as uuidv4 } from "uuid";
+import dotenv from "dotenv";
 
+dotenv.config();
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
