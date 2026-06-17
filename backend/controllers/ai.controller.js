@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 const openai = new OpenAI({
-  apiKey:"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",
+  apiKey:"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",
 });
 
 const USD_TO_PKR = 280;
